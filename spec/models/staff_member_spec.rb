@@ -1,0 +1,64 @@
+require "rails_helper"
+
+RSpec.describe StaffMember, type: :model do
+  describe "capabilities" do
+    it "grants a manager locations/activities/coaches/sessions/bookings/clients/memberships/payments/reports/checkin" do
+      staff = build(:staff_member, role: :manager)
+
+      expect(staff.can?(:locations)).to be true
+      expect(staff.can?(:bookings)).to be true
+      expect(staff.can?(:clients)).to be true
+      expect(staff.can?(:reports)).to be true
+      expect(staff.can?(:payments)).to be true
+      expect(staff.can?(:checkin)).to be true
+    end
+
+    it "grants a coach only checkin (attendance-marking) — no client/schedule management" do
+      staff = build(:staff_member, role: :coach)
+
+      expect(staff.can?(:checkin)).to be true
+      expect(staff.can?(:sessions)).to be false
+      expect(staff.can?(:locations)).to be false
+      expect(staff.can?(:clients)).to be false
+      expect(staff.can?(:payments)).to be false
+    end
+
+    it "grants a receptionist bookings/clients/memberships/payments/checkin but not locations or sessions" do
+      staff = build(:staff_member, role: :receptionist)
+
+      expect(staff.can?(:bookings)).to be true
+      expect(staff.can?(:clients)).to be true
+      expect(staff.can?(:memberships)).to be true
+      expect(staff.can?(:payments)).to be true
+      expect(staff.can?(:checkin)).to be true
+      expect(staff.can?(:locations)).to be false
+      expect(staff.can?(:sessions)).to be false
+    end
+  end
+
+  describe "validations" do
+    it "rejects a coach_id on a non-coach role" do
+      organization = create(:organization)
+      coach = create(:coach, organization: organization)
+      staff = build(:staff_member, role: :manager, organization: organization, coach: coach)
+
+      expect(staff).not_to be_valid
+    end
+
+    it "rejects a coach from a different organization" do
+      organization = create(:organization)
+      other_org_coach = create(:coach)
+      staff = build(:staff_member, role: :coach, organization: organization, coach: other_org_coach)
+
+      expect(staff).not_to be_valid
+    end
+
+    it "only allows one staff record per user" do
+      user = create(:user, :staff)
+      create(:staff_member, user: user)
+      duplicate = build(:staff_member, user: user)
+
+      expect(duplicate).not_to be_valid
+    end
+  end
+end
