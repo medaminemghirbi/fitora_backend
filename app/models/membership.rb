@@ -1,7 +1,7 @@
 class Membership < ApplicationRecord
   belongs_to :client
   belongs_to :membership_plan
-  belongs_to :organization
+  belongs_to :company
   belongs_to :created_by, class_name: "User", optional: true
 
   has_many :bookings, dependent: :nullify

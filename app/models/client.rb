@@ -1,9 +1,8 @@
 class Client < ApplicationRecord
-  belongs_to :organization
+  belongs_to :company
 
   has_many :bookings, dependent: :destroy
   has_many :memberships, dependent: :destroy
-  has_many :client_packages, dependent: :destroy
   has_many :payments, dependent: :destroy
 
   before_validation { self.email = email.to_s.downcase.strip if email.present? }

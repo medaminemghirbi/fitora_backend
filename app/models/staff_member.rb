@@ -1,6 +1,6 @@
 class StaffMember < ApplicationRecord
   # Org-scoped role for a staff login. Only three values now — the owner is
-  # never a StaffMember row (Organization#owner) and always has full access,
+  # never a StaffMember row (Company#owner) and always has full access,
   # so there's no "staff acting as owner" role to model here anymore.
   ROLES = { manager: 0, receptionist: 1, coach: 2 }.freeze
 
@@ -15,7 +15,7 @@ class StaffMember < ApplicationRecord
   }.freeze
 
   belongs_to :user
-  belongs_to :organization
+  belongs_to :company
   belongs_to :coach, optional: true
 
   has_many :staff_member_locations, dependent: :destroy
@@ -25,7 +25,7 @@ class StaffMember < ApplicationRecord
 
   validates :user_id, uniqueness: true
   validate :coach_only_for_coach_role
-  validate :coach_belongs_to_same_organization
+  validate :coach_belongs_to_same_company
 
   scope :active, -> { where(active: true) }
 
@@ -39,9 +39,9 @@ class StaffMember < ApplicationRecord
     errors.add(:coach, "can only be set for the coach role") if coach.present? && !coach?
   end
 
-  def coach_belongs_to_same_organization
+  def coach_belongs_to_same_company
     return if coach.blank?
 
-    errors.add(:coach, "must belong to the same organization") if coach.organization_id != organization_id
+    errors.add(:coach, "must belong to the same company") if coach.company_id != company_id
   end
 end

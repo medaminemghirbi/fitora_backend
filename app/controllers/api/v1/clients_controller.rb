@@ -1,7 +1,7 @@
 module Api
   module V1
     class ClientsController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action -> { require_capability!(:clients) }
       before_action :set_client, only: [ :show, :update ]
       before_action :enforce_client_limit!, only: [ :create ]
@@ -27,14 +27,13 @@ module Api
           client: ClientSerializer.new(@client, detailed: true).as_json,
           memberships: @client.memberships.includes(:membership_plan).order(created_at: :desc).map { |m| MembershipSerializer.new(m).as_json },
           bookings: @client.bookings.includes(session: [ :activity, :location, :coach ]).order(created_at: :desc).limit(20).map { |b| BookingSerializer.new(b).as_json },
-          payments: @client.payments.recent.limit(20).map { |p| PaymentSerializer.new(p).as_json },
-          client_packages: @client.client_packages.includes(:package).order(created_at: :desc).map { |cp| ClientPackageSerializer.new(cp).as_json }
+          payments: @client.payments.recent.limit(20).map { |p| PaymentSerializer.new(p).as_json }
         }
       end
 
       # POST /api/v1/clients
       def create
-        client = current_organization.clients.new(client_params)
+        client = current_company.clients.new(client_params)
 
         if client.save
           render json: { client: ClientSerializer.new(client).as_json }, status: :created
@@ -55,8 +54,8 @@ module Api
       private
 
       def enforce_client_limit!
-        plan = current_organization.current_plan
-        return if plan.nil? || !plan.client_limit_reached?(current_organization.clients.count)
+        plan = current_company.current_plan
+        return if plan.nil? || !plan.client_limit_reached?(current_company.clients.count)
 
         render json: {
           error: "plan_limit_reached", limit_type: "clients", limit: plan.max_clients,
@@ -65,11 +64,11 @@ module Api
       end
 
       def set_client
-        @client = current_organization.clients.find(params[:id])
+        @client = current_company.clients.find(params[:id])
       end
 
       def filtered_scope
-        scope = current_organization.clients.search(params[:search])
+        scope = current_company.clients.search(params[:search])
 
         case params[:status]
         when "active" then scope.active

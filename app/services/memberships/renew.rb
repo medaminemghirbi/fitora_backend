@@ -20,7 +20,7 @@ module Memberships
       new_membership = Membership.create!(
         client: membership.client,
         membership_plan: plan,
-        organization: membership.organization,
+        company: membership.company,
         status: :active,
         starts_at: starts_at,
         expires_at: starts_at + plan.duration_days.days,

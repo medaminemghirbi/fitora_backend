@@ -8,16 +8,16 @@
 #   Platform admin: admin@fitora.test
 #
 # Clients are business records only — they never log in.
-# Every organization has exactly one location.
+# Every company has exactly one location.
 
-puts "Seeding subscription plans..."
+puts "Seeding contract plans..."
 
 # Not a purchasable plan — assigned automatically at signup (see
-# Api::V1::OrganizationsController#create) and never shown in the "choose a
-# plan" list on purpose (active: false keeps it out of SubscriptionPlan.active,
+# Api::V1::CompaniesController#create) and never shown in the "choose a
+# plan" list on purpose (active: false keeps it out of ContractPlan.active,
 # which is what #plans queries). Full access, nothing gated, for 14 days —
-# see Subscription#locked? for what happens once expires_at passes.
-SubscriptionPlan.find_or_create_by!(code: "free_trial") do |p|
+# see Contract#locked? for what happens once expires_at passes.
+ContractPlan.find_or_create_by!(code: "free_trial") do |p|
   p.name = "Essai gratuit"
   p.max_locations = nil
   p.price = 0
@@ -25,7 +25,7 @@ SubscriptionPlan.find_or_create_by!(code: "free_trial") do |p|
   p.active = false
 end
 
-basic = SubscriptionPlan.find_or_create_by!(code: "basic") do |p|
+basic = ContractPlan.find_or_create_by!(code: "basic") do |p|
   p.name = "Basic"
   p.max_locations = 1
   p.max_clients = 150
@@ -34,7 +34,7 @@ basic = SubscriptionPlan.find_or_create_by!(code: "basic") do |p|
   p.billing_period = :yearly
 end
 
-SubscriptionPlan.find_or_create_by!(code: "premium") do |p|
+ContractPlan.find_or_create_by!(code: "premium") do |p|
   p.name = "Premium"
   p.max_locations = 1
   p.max_clients = nil
@@ -43,7 +43,7 @@ SubscriptionPlan.find_or_create_by!(code: "premium") do |p|
   p.billing_period = :yearly
 end
 
-SubscriptionPlan.find_or_create_by!(code: "ultimate") do |p|
+ContractPlan.find_or_create_by!(code: "ultimate") do |p|
   p.name = "Ultimate"
   p.max_locations = 1
   p.max_clients = nil
@@ -52,9 +52,9 @@ SubscriptionPlan.find_or_create_by!(code: "ultimate") do |p|
   p.billing_period = :yearly
 end
 
-premium = SubscriptionPlan.find_by!(code: "premium")
+premium = ContractPlan.find_by!(code: "premium")
 
-puts "Seeding owner + organization..."
+puts "Seeding owner + company..."
 
 owner = User.find_or_create_by!(email: "owner@fitora.test") do |u|
   u.first_name = "Yassine"
@@ -64,7 +64,7 @@ owner = User.find_or_create_by!(email: "owner@fitora.test") do |u|
   u.locale = "fr"
 end
 
-organization = Organization.find_or_create_by!(owner: owner) do |o|
+company = Company.find_or_create_by!(owner: owner) do |o|
   o.name = "Fitora Fitness Sousse"
   o.description = "Fitness studio"
   o.phone = "+216 20 123 456"
@@ -76,16 +76,16 @@ organization = Organization.find_or_create_by!(owner: owner) do |o|
   o.currency = "TND"
 end
 
-Subscription.find_or_create_by!(organization: organization) do |s|
-  s.subscription_plan = premium
+Contract.find_or_create_by!(company: company) do |s|
+  s.contract_plan = premium
   s.status = :active
   s.starts_at = 1.month.ago
   s.auto_renew = true
 end
 
-puts "Seeding the organization's one location..."
+puts "Seeding the company's one location..."
 
-sousse = Location.find_or_create_by!(organization: organization) do |l|
+sousse = Location.find_or_create_by!(company: company) do |l|
   l.name = "Fitora Sousse"
   l.city = "Sousse"
   l.address = "12 Avenue Habib Bourguiba"
@@ -136,14 +136,14 @@ end
 
 puts "Seeding coaches + staff accounts..."
 
-sarah = Coach.find_or_create_by!(organization: organization, first_name: "Sarah", last_name: "Martin") do |c|
+sarah = Coach.find_or_create_by!(company: company, first_name: "Sarah", last_name: "Martin") do |c|
   c.email = "sarah.martin@fitora.test"
   c.phone = "+216 22 111 222"
   c.bio = "Certified Pilates and Yoga instructor with 8 years of experience."
 end
 CoachLocation.find_or_create_by!(coach: sarah, location: sousse)
 
-amine = Coach.find_or_create_by!(organization: organization, first_name: "Amine", last_name: "Ben Ali") do |c|
+amine = Coach.find_or_create_by!(company: company, first_name: "Amine", last_name: "Ben Ali") do |c|
   c.email = "amine.benali@fitora.test"
   c.phone = "+216 22 333 444"
   c.bio = "EMS and strength training specialist."
@@ -158,7 +158,7 @@ manager_user = User.find_or_create_by!(email: "manager@fitora.test") do |u|
   u.locale = "fr"
 end
 manager_staff = StaffMember.find_or_create_by!(user: manager_user) do |s|
-  s.organization = organization
+  s.company = company
   s.role = :manager
 end
 StaffMemberLocation.find_or_create_by!(staff_member: manager_staff, location: sousse)
@@ -171,7 +171,7 @@ receptionist_user = User.find_or_create_by!(email: "receptionist@fitora.test") d
   u.locale = "fr"
 end
 receptionist_staff = StaffMember.find_or_create_by!(user: receptionist_user) do |s|
-  s.organization = organization
+  s.company = company
   s.role = :receptionist
 end
 StaffMemberLocation.find_or_create_by!(staff_member: receptionist_staff, location: sousse)
@@ -184,7 +184,7 @@ sarah_user = User.find_or_create_by!(email: "sarah.coach@fitora.test") do |u|
   u.locale = "fr"
 end
 sarah_staff = StaffMember.find_or_create_by!(user: sarah_user) do |s|
-  s.organization = organization
+  s.company = company
   s.role = :coach
   s.coach = sarah
 end
@@ -197,7 +197,7 @@ def next_occurrence(days_ahead:, hour:, minute: 0)
 end
 
 # Only pay_per_booking activities (EMS here) need an explicit session price —
-# everything else is either free or gated by a membership/package, where the
+# everything else is either free or gated by a membership, where the
 # per-session price is irrelevant and defaults to 0.
 sessions_data = [
   { activity: gym_access, coach: nil, days_ahead: 0, hour: 8 },
@@ -225,7 +225,7 @@ sessions_data.each do |data|
 end
 
 pilates_recurring = RecurringSchedule.find_or_create_by!(
-  activity: pilates_beginner, location: sousse, coach: sarah, organization: organization
+  activity: pilates_beginner, location: sousse, coach: sarah, company: company
 ) do |rs|
   rs.weekdays = [ 1, 3 ] # Monday & Wednesday
   rs.start_time = "18:30"
@@ -236,35 +236,40 @@ pilates_recurring = RecurringSchedule.find_or_create_by!(
 end
 RecurringSchedules::Generate.call(schedule: pilates_recurring)
 
-puts "Seeding membership plans + packages..."
+puts "Seeding membership plans..."
 
-premium_plan = MembershipPlan.find_or_create_by!(organization: organization, name: "Premium") do |p|
+premium_plan = MembershipPlan.find_or_create_by!(company: company, name: "Premium") do |p|
   p.description = "Unlimited access to gym, Pilates, EMS and Yoga."
   p.price = 89
-  p.currency = organization.currency
-  p.duration_days = 30
+  p.currency = company.currency
+  p.billing_period = :monthly
   p.unlimited_bookings = true
   p.priority_booking = true
 end
 
-basic_plan = MembershipPlan.find_or_create_by!(organization: organization, name: "Basic") do |p|
+basic_plan = MembershipPlan.find_or_create_by!(company: company, name: "Basic") do |p|
   p.description = "Gym access only, up to 8 bookings a month."
   p.price = 49
-  p.currency = organization.currency
-  p.duration_days = 30
+  p.currency = company.currency
+  p.billing_period = :monthly
   p.unlimited_bookings = false
   p.booking_limit = 8
 end
 basic_plan.activity_ids = [ gym_access.id ] if basic_plan.activities.empty?
 
-ems_package = Package.find_or_create_by!(organization: organization, name: "EMS 10 Sessions") do |pkg|
-  pkg.activity = ems
-  pkg.description = "10 EMS credits, valid for 60 days."
-  pkg.price = 300
-  pkg.currency = organization.currency
-  pkg.credits = 10
-  pkg.validity_days = 60
+# Replaces the old Package/ClientPackage credits system: a plan can now cap
+# total sessions directly via session_count ("nombre de séances") instead of
+# needing a separate package purchase.
+ems_plan = MembershipPlan.find_or_create_by!(company: company, name: "EMS Pass") do |p|
+  p.description = "10 EMS sessions, valid 60 days."
+  p.price = 300
+  p.currency = company.currency
+  p.billing_period = :quarterly
+  p.unlimited_bookings = false
+  p.booking_limit = 10
+  p.session_count = 10
 end
+ems_plan.activity_ids = [ ems.id ] if ems_plan.activities.empty?
 
 puts "Seeding clients..."
 
@@ -278,7 +283,7 @@ clients_data = [
 ]
 
 clients = clients_data.map do |data|
-  Client.find_or_create_by!(organization: organization, phone: data[:phone]) do |c|
+  Client.find_or_create_by!(company: company, phone: data[:phone]) do |c|
     c.first_name = data[:first_name]
     c.last_name = data[:last_name]
     c.email = data[:email]
@@ -313,9 +318,12 @@ if nadia.memberships.none?
   result.membership.update!(expires_at: 3.days.from_now)
 end
 
-# Mouna: EMS package with remaining credits.
-if mouna.client_packages.none?
-  Packages::Assign.call(client: mouna, package: ems_package, created_by: owner, payment_method: :cash, payment_amount: ems_package.price)
+# Mouna: EMS Pass membership with remaining session credits.
+if mouna.memberships.none?
+  Memberships::Create.call(
+    client: mouna, membership_plan: ems_plan, created_by: owner,
+    starts_on: 2.days.ago.to_date, payment_method: :cash, payment_amount: ems_plan.price
+  )
 end
 
 puts "Seeding bookings + attendance..."
@@ -334,7 +342,7 @@ end
 Bookings::Create.call(client: leila, session: upcoming_yoga_session) if upcoming_yoga_session && Booking.where(session: upcoming_yoga_session, client: leila).none?
 Bookings::Create.call(client: karim, session: upcoming_pilates_session) if upcoming_pilates_session && Booking.where(session: upcoming_pilates_session, client: karim).none?
 
-puts "Seeding admin account + a second organization (for the platform admin panel)..."
+puts "Seeding admin account + a second company (for the platform admin panel)..."
 
 User.find_or_create_by!(email: "admin@fitora.test") do |u|
   u.first_name = "Fitora"
@@ -352,7 +360,7 @@ second_owner = User.find_or_create_by!(email: "owner2@fitora.test") do |u|
   u.locale = "fr"
 end
 
-second_organization = Organization.find_or_create_by!(owner: second_owner) do |o|
+second_company = Company.find_or_create_by!(owner: second_owner) do |o|
   o.name = "Zen Yoga Monastir"
   o.description = "Boutique yoga studio"
   o.city = "Monastir"
@@ -361,14 +369,14 @@ second_organization = Organization.find_or_create_by!(owner: second_owner) do |o
   o.currency = "TND"
 end
 
-Subscription.find_or_create_by!(organization: second_organization) do |s|
-  s.subscription_plan = basic
+Contract.find_or_create_by!(company: second_company) do |s|
+  s.contract_plan = basic
   s.status = :active
   s.starts_at = 1.week.ago
   s.auto_renew = false
 end
 
-Location.find_or_create_by!(organization: second_organization) do |l|
+Location.find_or_create_by!(company: second_company) do |l|
   l.name = "Zen Yoga Monastir"
   l.city = "Monastir"
   l.timezone = "Africa/Tunis"

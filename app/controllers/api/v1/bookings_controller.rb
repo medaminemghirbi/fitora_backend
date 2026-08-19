@@ -1,11 +1,11 @@
 module Api
   module V1
     class BookingsController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action :set_booking, only: [ :show, :cancel, :remind ]
       before_action :require_premium!, only: [ :remind ]
 
-      # GET /api/v1/bookings — filterable list of the org's bookings (coaches
+      # GET /api/v1/bookings — filterable list of the company's bookings (coaches
       # narrowed to their own sessions)
       def index
         scope = org_scope.order(created_at: :desc)
@@ -31,10 +31,10 @@ module Api
       def create
         return render_forbidden unless BookingPolicy.new(current_user, nil).create?
 
-        client = current_organization.clients.find_by(id: params[:client_id])
+        client = current_company.clients.find_by(id: params[:client_id])
         return render json: { error: "Client not found" }, status: :not_found if client.nil?
 
-        session = Session.joins(:location).where(locations: { organization_id: current_organization.id }).find_by(id: params[:session_id])
+        session = Session.joins(:location).where(locations: { company_id: current_company.id }).find_by(id: params[:session_id])
         return render json: { error: "Session not found" }, status: :not_found if session.nil?
 
         result = Bookings::Create.call(client: client, session: session)
@@ -54,7 +54,7 @@ module Api
 
         if result.success?
           AuditLogs::Record.call(
-            organization: @booking.session.location.organization, user: current_user, action: "booking.cancelled",
+            company: @booking.session.location.company, user: current_user, action: "booking.cancelled",
             auditable: @booking, metadata: { client: @booking.client.full_name, activity: @booking.session.activity.name }
           )
           render json: { booking: BookingSerializer.new(@booking.reload).as_json }
@@ -72,7 +72,7 @@ module Api
 
         if result.success?
           AuditLogs::Record.call(
-            organization: @booking.session.location.organization, user: current_user, action: "booking.reminder_sent",
+            company: @booking.session.location.company, user: current_user, action: "booking.reminder_sent",
             auditable: @booking, metadata: { client: @booking.client.full_name }
           )
           render json: { status: "sent" }
@@ -84,14 +84,14 @@ module Api
       private
 
       def require_premium!
-        plan = current_organization.current_plan
+        plan = current_company.current_plan
         return if plan&.premium?
 
         render json: { error: "plan_feature_locked", feature: "sms_reminders" }, status: :forbidden
       end
 
       def org_scope
-        scope = Booking.joins(session: :location).where(locations: { organization_id: current_organization.id })
+        scope = Booking.joins(session: :location).where(locations: { company_id: current_company.id })
         current_staff_member&.coach? ? scope.where(sessions: { coach_id: current_staff_member.coach_id }) : scope
       end
 

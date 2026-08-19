@@ -1,7 +1,7 @@
 module Reports
   # Parses the "month" or "year" period the owner picked in the export
   # dialog into a concrete time range, plus a human label and a filename
-  # slug — used by Reports::OrganizationWorkbook to scope revenue figures.
+  # slug — used by Reports::CompanyWorkbook to scope revenue figures.
   class Period
     class InvalidPeriod < StandardError; end
 

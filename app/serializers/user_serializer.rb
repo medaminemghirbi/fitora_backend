@@ -13,7 +13,7 @@ class UserSerializer
       phone: user.phone,
       role: user.role,
       locale: user.locale,
-      organization_id: user.organization&.id || user.staff_member&.organization_id,
+      company_id: user.company&.id || user.staff_member&.company_id,
       staff_role: user.staff_member&.role
     }
   end

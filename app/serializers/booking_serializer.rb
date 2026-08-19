@@ -37,7 +37,6 @@ class BookingSerializer
 
   def covered_by
     return { type: "membership", name: booking.membership.membership_plan.name } if booking.membership
-    return { type: "package", name: booking.client_package.package.name } if booking.client_package
 
     nil
   end

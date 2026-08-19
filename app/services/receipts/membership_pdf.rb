@@ -8,7 +8,7 @@ Prawn::Fonts::AFM.hide_m17n_warning = true
 
 module Receipts
   # Builds the Premium "receipt/invoice" PDF for one membership — the
-  # organization's letterhead, the client and plan details, and a table of
+  # company's letterhead, the client and plan details, and a table of
   # every payment recorded against it with a running balance. Downloaded
   # on demand (MembershipsController#receipt), not stored anywhere.
   class MembershipPdf
@@ -20,7 +20,7 @@ module Receipts
 
     def initialize(membership:)
       @membership = membership
-      @organization = membership.organization
+      @company = membership.company
       @client = membership.client
       @plan = membership.membership_plan
     end
@@ -39,17 +39,17 @@ module Receipts
 
     private
 
-    attr_reader :membership, :organization, :client, :plan
+    attr_reader :membership, :company, :client, :plan
 
     def header(pdf)
       pdf.fill_color BRAND
-      pdf.text organization.name, size: 20, style: :bold
+      pdf.text company.name, size: 20, style: :bold
       pdf.fill_color "000000"
 
-      address_line = [ organization.address, organization.city, organization.country ].compact_blank.join(", ")
+      address_line = [ company.address, company.city, company.country ].compact_blank.join(", ")
       pdf.text address_line, size: 9, color: "555555" if address_line.present?
 
-      contact_line = [ organization.phone, organization.email ].compact_blank.join(" · ")
+      contact_line = [ company.phone, company.email ].compact_blank.join(" · ")
       pdf.text contact_line, size: 9, color: "555555" if contact_line.present?
 
       pdf.stroke_color BRAND
@@ -61,7 +61,7 @@ module Receipts
 
     def title(pdf)
       pdf.text "Reçu / Facture", size: 16, style: :bold
-      pdf.text "N° #{format('%06d', membership.id)}", size: 9, color: "555555"
+      pdf.text "N° #{membership.id.split('-').first.upcase}", size: 9, color: "555555"
       pdf.move_down 12
     end
 

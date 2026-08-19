@@ -1,14 +1,14 @@
 module Api
   module V1
     class MembershipsController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action -> { require_capability!(:memberships) }
       before_action :set_membership, only: [ :show, :renew, :receipt ]
       before_action :require_premium!, only: [ :receipt ]
 
-      # GET /api/v1/memberships — the org's memberships (filterable by status)
+      # GET /api/v1/memberships — the company's memberships (filterable by status)
       def index
-        memberships = current_organization.memberships.includes(:membership_plan, :client).order(created_at: :desc)
+        memberships = current_company.memberships.includes(:membership_plan, :client).order(created_at: :desc)
         memberships = memberships.where(status: params[:status]) if params[:status].present?
 
         render json: {
@@ -24,10 +24,10 @@ module Api
 
       # POST /api/v1/memberships — staff gives a client a membership
       def create
-        client = current_organization.clients.find_by(id: params[:client_id])
+        client = current_company.clients.find_by(id: params[:client_id])
         return render json: { error: "Client not found" }, status: :not_found if client.nil?
 
-        plan = current_organization.membership_plans.active.find_by(id: params[:membership_plan_id])
+        plan = current_company.membership_plans.active.find_by(id: params[:membership_plan_id])
         return render json: { error: "Membership plan not found" }, status: :not_found if plan.nil?
 
         result = Memberships::Create.call(
@@ -58,17 +58,17 @@ module Api
         end
       end
 
-      # GET /api/v1/memberships/:id/receipt — Premium+ perk (SubscriptionPlan
-      # #premium?, same gate as the owner's Reports::OrganizationWorkbook
+      # GET /api/v1/memberships/:id/receipt — Premium+ perk (ContractPlan
+      # #premium?, same gate as the owner's Reports::CompanyWorkbook
       # export). Available to anyone who can already see this membership
-      # (require_capability!(:memberships)) — unlike the org-wide export, a
+      # (require_capability!(:memberships)) — unlike the company-wide export, a
       # single receipt is a day-to-day document a receptionist hands a client
       # right after taking payment, not a business-analytics report.
       def receipt
         pdf_data = Receipts::MembershipPdf.call(membership: @membership)
 
         send_data pdf_data,
-                   filename: "recu-#{@membership.client.full_name.parameterize}-#{@membership.id}.pdf",
+                   filename: "recu-#{@membership.client.full_name.parameterize}-#{@membership.id.split('-').first}.pdf",
                    type: "application/pdf",
                    disposition: "attachment"
       end
@@ -76,14 +76,14 @@ module Api
       private
 
       def require_premium!
-        plan = current_organization.current_plan
+        plan = current_company.current_plan
         return if plan&.premium?
 
         render json: { error: "plan_feature_locked", feature: "advanced_reports" }, status: :forbidden
       end
 
       def set_membership
-        @membership = current_organization.memberships.find(params[:id])
+        @membership = current_company.memberships.find(params[:id])
       end
     end
   end

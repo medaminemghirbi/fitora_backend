@@ -1,7 +1,7 @@
 module Api
   module V1
     class SessionsController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action :require_staff!, only: [ :index, :show ]
       before_action :require_session_management!, only: [ :create, :update, :cancel ]
       before_action :set_session, only: [ :show, :update, :cancel ]
@@ -39,7 +39,7 @@ module Api
       # POST /api/v1/sessions
       def create
         activity = Activity.joins(:location)
-                            .where(locations: { organization_id: current_organization.id })
+                            .where(locations: { company_id: current_company.id })
                             .find_by(id: session_params[:activity_id])
         return render json: { error: "Activity not found" }, status: :not_found if activity.nil?
 
@@ -48,8 +48,8 @@ module Api
           capacity: session_params[:capacity].presence || activity.capacity
         )
         # No activity-level price to fall back to anymore — pricing lives on
-        # memberships/packages. A blank price just leaves the session at the
-        # column default (0), same as any free/membership_required session.
+        # memberships. A blank price just leaves the session at the column
+        # default (0), same as any free/membership_required session.
         attributes.delete(:price) if attributes[:price].blank?
 
         result = Sessions::Create.call(attributes: attributes)
@@ -76,7 +76,7 @@ module Api
       def cancel
         @session.update!(status: :cancelled)
         AuditLogs::Record.call(
-          organization: current_organization, user: current_user, action: "session.cancelled",
+          company: current_company, user: current_user, action: "session.cancelled",
           auditable: @session, metadata: { activity: @session.activity.name, starts_at: @session.starts_at }
         )
         render json: { session: SessionSerializer.new(@session).as_json }
@@ -85,9 +85,9 @@ module Api
       private
 
       # Coach-role staff only ever see/touch their own sessions; everyone
-      # else with the `sessions` capability sees the whole organization.
+      # else with the `sessions` capability sees the whole company.
       def base_scope
-        scope = Session.joins(:location).where(locations: { organization_id: current_organization.id })
+        scope = Session.joins(:location).where(locations: { company_id: current_company.id })
         current_staff_member&.coach? ? scope.where(coach_id: current_staff_member.coach_id) : scope
       end
 

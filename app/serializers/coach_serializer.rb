@@ -6,7 +6,7 @@ class CoachSerializer
   def as_json(*)
     {
       id: coach.id,
-      organization_id: coach.organization_id,
+      company_id: coach.company_id,
       first_name: coach.first_name,
       last_name: coach.last_name,
       full_name: coach.full_name,

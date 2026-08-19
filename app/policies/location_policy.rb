@@ -1,7 +1,7 @@
-class LocationPolicy < OrganizationScopedPolicy
+class LocationPolicy < CompanyScopedPolicy
   private
 
-  def record_organization_id
-    record.organization_id
+  def record_company_id
+    record.company_id
   end
 end

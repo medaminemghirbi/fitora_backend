@@ -1,13 +1,13 @@
 module Api
   module V1
     class PaymentsController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action -> { require_capability!(:payments) }
       before_action :set_payment, only: [ :show, :refund ]
 
       # GET /api/v1/payments?status=&payment_method=&date=
       def index
-        scope = current_organization.payments.includes(:client)
+        scope = current_company.payments.includes(:client)
         scope = scope.where(status: params[:status]) if params[:status].present?
         scope = scope.where(payment_method: params[:payment_method]) if params[:payment_method].present?
         scope = scope.where("created_at >= ?", Date.parse(params[:date]).beginning_of_day) if params[:date].present?
@@ -29,17 +29,16 @@ module Api
       end
 
       # POST /api/v1/payments — staff manually records a payment against a
-      # client's membership, booking, or package
+      # client's membership or booking
       def create
-        client = current_organization.clients.find_by(id: params[:client_id])
+        client = current_company.clients.find_by(id: params[:client_id])
         return render json: { error: "Client not found" }, status: :not_found if client.nil?
 
         result = Payments::Record.call(
-          client: client, organization: current_organization, created_by: current_user,
+          client: client, company: current_company, created_by: current_user,
           amount: params[:amount], payment_method: params[:payment_method], notes: params[:notes],
           membership: find_payable(client.memberships, params[:membership_id]),
-          booking: find_payable(client.bookings, params[:booking_id]),
-          client_package: find_payable(client.client_packages, params[:client_package_id])
+          booking: find_payable(client.bookings, params[:booking_id])
         )
 
         if result.success?
@@ -69,7 +68,7 @@ module Api
       end
 
       def set_payment
-        @payment = current_organization.payments.find_by(id: params[:id])
+        @payment = current_company.payments.find_by(id: params[:id])
         render_not_found if @payment.nil?
       end
 

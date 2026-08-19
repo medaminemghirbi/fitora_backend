@@ -1,5 +1,5 @@
 class Location < ApplicationRecord
-  belongs_to :organization
+  belongs_to :company
 
   has_many :activities, dependent: :destroy
   has_many :sessions, dependent: :destroy

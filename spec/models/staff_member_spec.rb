@@ -38,17 +38,17 @@ RSpec.describe StaffMember, type: :model do
 
   describe "validations" do
     it "rejects a coach_id on a non-coach role" do
-      organization = create(:organization)
-      coach = create(:coach, organization: organization)
-      staff = build(:staff_member, role: :manager, organization: organization, coach: coach)
+      company = create(:company)
+      coach = create(:coach, company: company)
+      staff = build(:staff_member, role: :manager, company: company, coach: coach)
 
       expect(staff).not_to be_valid
     end
 
-    it "rejects a coach from a different organization" do
-      organization = create(:organization)
+    it "rejects a coach from a different company" do
+      company = create(:company)
       other_org_coach = create(:coach)
-      staff = build(:staff_member, role: :coach, organization: organization, coach: other_org_coach)
+      staff = build(:staff_member, role: :coach, company: company, coach: other_org_coach)
 
       expect(staff).not_to be_valid
     end

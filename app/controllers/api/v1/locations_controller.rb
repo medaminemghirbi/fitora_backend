@@ -1,20 +1,20 @@
 module Api
   module V1
-    # Every organization has exactly one location (auto-created at signup,
-    # see Api::V1::OrganizationsController#create) — this is a singular
-    # resource, same pattern as OrganizationsController, not a full CRUD list.
+    # Every company has exactly one location (auto-created at signup,
+    # see Api::V1::CompaniesController#create) — this is a singular
+    # resource, same pattern as CompaniesController, not a full CRUD list.
     class LocationsController < BaseController
       before_action -> { require_capability!(:locations) }
-      before_action :require_organization!
+      before_action :require_company!
 
       # GET /api/v1/location
       def show
-        render json: { location: LocationSerializer.new(current_organization.location).as_json }
+        render json: { location: LocationSerializer.new(current_company.location).as_json }
       end
 
       # PATCH /api/v1/location
       def update
-        location = current_organization.location
+        location = current_company.location
 
         if location.update(location_params)
           render json: { location: LocationSerializer.new(location).as_json }

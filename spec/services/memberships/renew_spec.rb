@@ -2,10 +2,10 @@ require "rails_helper"
 
 RSpec.describe Memberships::Renew do
   it "creates a new membership starting exactly when the current one expires, never touching history" do
-    plan = create(:membership_plan, duration_days: 30)
-    client = create(:client, organization: plan.organization)
+    plan = create(:membership_plan)
+    client = create(:client, company: plan.company)
     staff = create(:user, :owner)
-    original = create(:membership, client: client, membership_plan: plan, organization: plan.organization,
+    original = create(:membership, client: client, membership_plan: plan, company: plan.company,
                                     starts_at: 30.days.ago, expires_at: 5.days.from_now)
 
     result = described_class.call(membership: original, created_by: staff)
@@ -18,10 +18,10 @@ RSpec.describe Memberships::Renew do
   end
 
   it "starts the new membership today when the current one has already expired" do
-    plan = create(:membership_plan, duration_days: 30)
-    client = create(:client, organization: plan.organization)
+    plan = create(:membership_plan)
+    client = create(:client, company: plan.company)
     staff = create(:user, :owner)
-    original = create(:membership, client: client, membership_plan: plan, organization: plan.organization,
+    original = create(:membership, client: client, membership_plan: plan, company: plan.company,
                                     starts_at: 40.days.ago, expires_at: 10.days.ago, status: :expired)
 
     result = described_class.call(membership: original, created_by: staff)

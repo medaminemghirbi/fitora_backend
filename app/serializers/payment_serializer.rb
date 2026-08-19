@@ -20,7 +20,7 @@ class PaymentSerializer
         full_name: payment.client.full_name,
         phone: payment.client.phone
       },
-      organization: { id: payment.organization.id, name: payment.organization.name },
+      company: { id: payment.company.id, name: payment.company.name },
       created_by: payment.created_by && { id: payment.created_by.id, full_name: payment.created_by.full_name },
       product_name: product_name
     }
@@ -32,7 +32,6 @@ class PaymentSerializer
 
   def product_name
     return payment.membership.membership_plan.name if payment.membership
-    return payment.client_package.package.name if payment.client_package
     return payment.booking.session.activity.name if payment.booking
 
     nil

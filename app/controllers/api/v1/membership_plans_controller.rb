@@ -1,13 +1,13 @@
 module Api
   module V1
     class MembershipPlansController < BaseController
-      before_action :require_organization!
+      before_action :require_company!
       before_action -> { require_capability!(:memberships) }
       before_action :set_plan, only: [ :show, :update ]
 
       # GET /api/v1/membership_plans
       def index
-        plans = current_organization.membership_plans.order(:price)
+        plans = current_company.membership_plans.order(:price)
         render json: { plans: plans.map { |p| MembershipPlanSerializer.new(p).as_json } }
       end
 
@@ -18,7 +18,7 @@ module Api
 
       # POST /api/v1/membership_plans
       def create
-        plan = current_organization.membership_plans.new(plan_params)
+        plan = current_company.membership_plans.new(plan_params)
 
         if plan.save
           sync_associations(plan)
@@ -41,18 +41,18 @@ module Api
       private
 
       def set_plan
-        @plan = current_organization.membership_plans.find(params[:id])
+        @plan = current_company.membership_plans.find(params[:id])
       end
 
       def sync_associations(plan)
         return unless params[:activity_ids]
 
-        plan.activity_ids = Array(params[:activity_ids]).map(&:to_i) & current_organization.locations.joins(:activities).pluck("activities.id")
+        plan.activity_ids = Array(params[:activity_ids]) & current_company.locations.joins(:activities).pluck("activities.id")
       end
 
       def plan_params
         params.require(:membership_plan).permit(
-          :name, :description, :price, :currency, :duration_days,
+          :name, :description, :price, :currency, :billing_period, :session_count,
           :unlimited_bookings, :booking_limit, :priority_booking, :active
         )
       end

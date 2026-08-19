@@ -2,23 +2,22 @@ module Payments
   class Record
     Result = Struct.new(:success?, :payment, :error, keyword_init: true)
 
-    def self.call(client:, organization:, created_by:, amount:, payment_method:, currency: nil, notes: nil,
-                   membership: nil, booking: nil, client_package: nil)
-      new(client: client, organization: organization, created_by: created_by, amount: amount, payment_method: payment_method,
-          currency: currency, notes: notes, membership: membership, booking: booking, client_package: client_package).call
+    def self.call(client:, company:, created_by:, amount:, payment_method:, currency: nil, notes: nil,
+                   membership: nil, booking: nil)
+      new(client: client, company: company, created_by: created_by, amount: amount, payment_method: payment_method,
+          currency: currency, notes: notes, membership: membership, booking: booking).call
     end
 
-    def initialize(client:, organization:, created_by:, amount:, payment_method:, currency:, notes:, membership:, booking:, client_package:)
+    def initialize(client:, company:, created_by:, amount:, payment_method:, currency:, notes:, membership:, booking:)
       @client = client
-      @organization = organization
+      @company = company
       @created_by = created_by
       @amount = amount
       @payment_method = payment_method
-      @currency = currency || organization.currency
+      @currency = currency || company.currency
       @notes = notes
       @membership = membership
       @booking = booking
-      @client_package = client_package
     end
 
     def call
@@ -26,10 +25,10 @@ module Payments
 
       ActiveRecord::Base.transaction do
         payment = Payment.create!(
-          client: client, organization: organization, created_by: created_by,
+          client: client, company: company, created_by: created_by,
           amount: amount, currency: currency, payment_method: payment_method, notes: notes,
           status: :paid, paid_at: Time.current,
-          membership: membership, booking: booking, client_package: client_package
+          membership: membership, booking: booking
         )
 
         update_payable_status!
@@ -42,7 +41,7 @@ module Payments
 
     private
 
-    attr_reader :client, :organization, :created_by, :amount, :payment_method, :currency, :notes, :membership, :booking, :client_package
+    attr_reader :client, :company, :created_by, :amount, :payment_method, :currency, :notes, :membership, :booking
 
     # A record's payment_status reflects total paid vs. what it owes — this
     # payment is one more contribution toward that total, not necessarily the

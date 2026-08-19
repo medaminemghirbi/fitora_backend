@@ -34,7 +34,7 @@ RSpec.describe RecurringSchedules::Generate do
   it "records a conflict instead of raising when a generated slot would double-book the coach" do
     monday = Date.current.next_occurring(:monday)
     coach = create(:coach)
-    location = create(:location, organization: coach.organization)
+    location = create(:location, company: coach.company)
     create(:coach_location, coach: coach, location: location)
     activity_a = create(:activity, location: location, duration: 60)
     activity_b = create(:activity, location: location, duration: 60)

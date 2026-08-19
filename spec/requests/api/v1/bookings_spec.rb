@@ -2,11 +2,11 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Bookings", type: :request do
   let(:owner) { create(:user, :owner) }
-  let(:organization) { create(:organization, owner: owner) }
-  let(:location) { create(:location, organization: organization) }
+  let(:company) { create(:company, owner: owner) }
+  let(:location) { create(:location, company: company) }
   let(:activity) { create(:activity, location: location) }
   let(:session) { create(:session, activity: activity, location: location, capacity: 1) }
-  let(:client) { create(:client, organization: organization) }
+  let(:client) { create(:client, company: company) }
 
   describe "POST /api/v1/bookings" do
     it "lets the owner book a client into a session" do
@@ -18,7 +18,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     end
 
     it "lets a manager with the bookings capability book a client" do
-      manager = create(:staff_member, organization: organization, role: :manager)
+      manager = create(:staff_member, company: company, role: :manager)
 
       post "/api/v1/bookings", params: { client_id: client.id, session_id: session.id }, headers: auth_headers(manager.user)
 
@@ -26,7 +26,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     end
 
     it "forbids a coach from booking a client (no bookings capability)" do
-      coach = create(:staff_member, organization: organization, role: :coach)
+      coach = create(:staff_member, company: company, role: :coach)
 
       post "/api/v1/bookings", params: { client_id: client.id, session_id: session.id }, headers: auth_headers(coach.user)
 
@@ -34,7 +34,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     end
 
     it "returns a friendly error when the session is full" do
-      create(:booking, client: create(:client, organization: organization), session: session, status: :confirmed)
+      create(:booking, client: create(:client, company: company), session: session, status: :confirmed)
 
       post "/api/v1/bookings", params: { client_id: client.id, session_id: session.id }, headers: auth_headers(owner)
 
@@ -53,9 +53,9 @@ RSpec.describe "Api::V1::Bookings", type: :request do
       expect(response.parsed_body["booking"]["status"]).to eq("cancelled")
     end
 
-    it "forbids another organization's owner from cancelling this booking" do
+    it "forbids another company's owner from cancelling this booking" do
       other_owner = create(:user, :owner)
-      create(:organization, owner: other_owner)
+      create(:company, owner: other_owner)
       booking = create(:booking, client: client, session: session)
 
       post "/api/v1/bookings/#{booking.id}/cancel", headers: auth_headers(other_owner)
@@ -65,7 +65,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
   end
 
   describe "GET /api/v1/bookings" do
-    it "only returns the organization's own bookings" do
+    it "only returns the company's own bookings" do
       create(:booking, client: client, session: session)
       create(:booking, client: create(:client), session: create(:session, capacity: 5))
 
@@ -77,9 +77,9 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     end
 
     it "narrows a coach to bookings on their own sessions" do
-      coach_profile = create(:coach, organization: organization)
+      coach_profile = create(:coach, company: company)
       create(:coach_location, coach: coach_profile, location: location)
-      coach_staff = create(:staff_member, organization: organization, role: :coach, coach: coach_profile)
+      coach_staff = create(:staff_member, company: company, role: :coach, coach: coach_profile)
       own_session = create(:session, activity: activity, location: location, coach: coach_profile)
       other_session = create(:session, activity: activity, location: location)
       create(:booking, client: client, session: own_session)
@@ -95,7 +95,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     let(:booking) { create(:booking, client: client, session: session) }
 
     context "on a plan with the Premium+ SMS reminder perk" do
-      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "premium")) }
+      before { create(:contract, company: company, contract_plan: create(:contract_plan, code: "premium")) }
 
       it "sends the reminder and returns sent" do
         allow(Bookings::SendReminder).to receive(:call).and_return(Bookings::SendReminder::Result.new(success?: true, error: nil))
@@ -117,7 +117,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
       end
 
       it "forbids a coach — coaches only have the checkin capability, never bookings" do
-        coach_staff = create(:staff_member, organization: organization, role: :coach, coach: create(:coach, organization: organization))
+        coach_staff = create(:staff_member, company: company, role: :coach, coach: create(:coach, company: company))
 
         post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(coach_staff.user)
 
@@ -126,7 +126,7 @@ RSpec.describe "Api::V1::Bookings", type: :request do
     end
 
     context "on Basic, which doesn't include Premium+ perks" do
-      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "basic")) }
+      before { create(:contract, company: company, contract_plan: create(:contract_plan, code: "basic")) }
 
       it "is forbidden with a distinguishable error code" do
         post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(owner)

@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :payment do
     client
-    organization
+    company
     membership
     amount { 89 }
     currency { "TND" }

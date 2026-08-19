@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Clients", type: :request do
   let(:owner) { create(:user, :owner) }
-  let!(:organization) { create(:organization, owner: owner) }
+  let!(:company) { create(:company, owner: owner) }
 
   describe "POST /api/v1/clients" do
     it "creates a client with only first name, last name, and phone required" do
@@ -19,9 +19,9 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "blocks creation once the plan's client limit is reached" do
-      plan = create(:subscription_plan, max_clients: 1)
-      create(:subscription, organization: organization, subscription_plan: plan)
-      create(:client, organization: organization)
+      plan = create(:contract_plan, max_clients: 1)
+      create(:contract, company: company, contract_plan: plan)
+      create(:client, company: company)
 
       post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
 
@@ -30,9 +30,9 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "allows creation while under the plan's client limit" do
-      plan = create(:subscription_plan, max_clients: 2)
-      create(:subscription, organization: organization, subscription_plan: plan)
-      create(:client, organization: organization)
+      plan = create(:contract_plan, max_clients: 2)
+      create(:contract, company: company, contract_plan: plan)
+      create(:client, company: company)
 
       post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
 
@@ -40,9 +40,9 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "is never blocked when the plan has no client limit" do
-      plan = create(:subscription_plan, max_clients: nil)
-      create(:subscription, organization: organization, subscription_plan: plan)
-      create_list(:client, 5, organization: organization)
+      plan = create(:contract_plan, max_clients: nil)
+      create(:contract, company: company, contract_plan: plan)
+      create_list(:client, 5, company: company)
 
       post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
 
@@ -52,8 +52,8 @@ RSpec.describe "Api::V1::Clients", type: :request do
 
   describe "GET /api/v1/clients" do
     it "searches across name, phone, and email" do
-      create(:client, organization: organization, first_name: "Ahmed", last_name: "Ben Ali", phone: "20111111")
-      create(:client, organization: organization, first_name: "Leila", last_name: "Gharbi", phone: "20222222")
+      create(:client, company: company, first_name: "Ahmed", last_name: "Ben Ali", phone: "20111111")
+      create(:client, company: company, first_name: "Leila", last_name: "Gharbi", phone: "20222222")
 
       get "/api/v1/clients", params: { search: "ahmed" }, headers: auth_headers(owner)
 
@@ -62,9 +62,9 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "filters by membership_active status" do
-      with_membership = create(:client, organization: organization)
-      create(:membership, client: with_membership, organization: organization, status: :active, expires_at: 10.days.from_now)
-      without_membership = create(:client, organization: organization)
+      with_membership = create(:client, company: company)
+      create(:membership, client: with_membership, company: company, status: :active, expires_at: 10.days.from_now)
+      without_membership = create(:client, company: company)
 
       get "/api/v1/clients", params: { status: "membership_active" }, headers: auth_headers(owner)
 
@@ -73,8 +73,8 @@ RSpec.describe "Api::V1::Clients", type: :request do
       expect(ids).not_to include(without_membership.id)
     end
 
-    it "never exposes another organization's clients" do
-      create(:client, organization: organization)
+    it "never exposes another company's clients" do
+      create(:client, company: company)
       other_org_client = create(:client)
 
       get "/api/v1/clients", headers: auth_headers(owner)
@@ -84,7 +84,7 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "forbids a coach from browsing the client list" do
-      coach_staff = create(:staff_member, organization: organization, role: :coach)
+      coach_staff = create(:staff_member, company: company, role: :coach)
 
       get "/api/v1/clients", headers: auth_headers(coach_staff.user)
 
@@ -92,8 +92,8 @@ RSpec.describe "Api::V1::Clients", type: :request do
     end
 
     it "lets a receptionist browse the client list" do
-      receptionist = create(:staff_member, organization: organization, role: :receptionist)
-      create(:client, organization: organization)
+      receptionist = create(:staff_member, company: company, role: :receptionist)
+      create(:client, company: company)
 
       get "/api/v1/clients", headers: auth_headers(receptionist.user)
 
@@ -103,7 +103,7 @@ RSpec.describe "Api::V1::Clients", type: :request do
 
   describe "GET /api/v1/clients/:id" do
     it "returns the client's overview payload including outstanding balance and attendance rate" do
-      client = create(:client, organization: organization)
+      client = create(:client, company: company)
 
       get "/api/v1/clients/#{client.id}", headers: auth_headers(owner)
 

@@ -18,12 +18,12 @@ RSpec.describe Sessions::Create do
   end
 
   it "rejects a coach's overlapping session with a friendly error, even across locations" do
-    organization = create(:organization)
-    location_a = create(:location, organization: organization)
-    location_b = create(:location, organization: organization)
+    company = create(:company)
+    location_a = create(:location, company: company)
+    location_b = create(:location, company: company)
     activity_a = create(:activity, location: location_a)
     activity_b = create(:activity, location: location_b)
-    coach = create(:coach, organization: organization)
+    coach = create(:coach, company: company)
     create(:coach_location, coach: coach, location: location_a)
     create(:coach_location, coach: coach, location: location_b)
 
@@ -46,10 +46,10 @@ RSpec.describe Sessions::Create do
   end
 
   it "allows back-to-back non-overlapping sessions for the same coach" do
-    organization = create(:organization)
-    location = create(:location, organization: organization)
+    company = create(:company)
+    location = create(:location, company: company)
     activity = create(:activity, location: location)
-    coach = create(:coach, organization: organization)
+    coach = create(:coach, company: company)
     create(:coach_location, coach: coach, location: location)
 
     starts_at = 2.days.from_now.change(hour: 18)

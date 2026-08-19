@@ -1,7 +1,7 @@
-class SessionPolicy < OrganizationScopedPolicy
+class SessionPolicy < CompanyScopedPolicy
   private
 
-  def record_organization_id
-    record.location.organization_id
+  def record_company_id
+    record.location.company_id
   end
 end

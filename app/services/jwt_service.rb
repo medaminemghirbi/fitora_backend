@@ -5,7 +5,7 @@ class JwtService
   class DecodeError < StandardError; end
 
   # impersonator_id is only set for an admin-initiated impersonation session
-  # (see Api::V1::Admin::OrganizationsController#impersonate) — it lets
+  # (see Api::V1::Admin::CompaniesController#impersonate) — it lets
   # authenticate_request! surface who is really behind the wheel without
   # changing what current_user resolves to (still the impersonated owner, so
   # every existing owner-only guard/capability check keeps working as-is).

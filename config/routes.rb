@@ -8,7 +8,7 @@ Rails.application.routes.draw do
       post "auth/logout", to: "auth#logout"
       get "auth/me", to: "auth#me"
 
-      resource :organization, only: [ :show, :update, :create ]
+      resource :company, only: [ :show, :update, :create ]
 
       resource :location, only: [ :show, :update ]
       resources :activities
@@ -26,20 +26,15 @@ Rails.application.routes.draw do
       end
       resources :clients, only: [ :index, :show, :create, :update ]
 
-      get "subscription", to: "subscription#show"
-      get "subscription/plans", to: "subscription#plans"
-      post "subscription/upgrade-request", to: "subscription#request_upgrade"
+      get "contract", to: "contract#show"
+      get "contract/plans", to: "contract#plans"
+      post "contract/upgrade-request", to: "contract#request_upgrade"
 
       resources :membership_plans, only: [ :index, :show, :create, :update ]
       resources :memberships, only: [ :index, :show, :create ] do
         member do
           post :renew
           get :receipt
-        end
-      end
-      resources :packages, only: [ :index, :show, :create, :update ] do
-        member do
-          post :assign
         end
       end
       resources :payments, only: [ :index, :show, :create ] do
@@ -60,10 +55,10 @@ Rails.application.routes.draw do
       end
 
       namespace :admin do
-        resources :organizations, only: [ :index, :show ] do
+        resources :companies, only: [ :index, :show ] do
           member do
-            patch :subscription, to: "organizations#update_subscription"
-            post :impersonate, to: "organizations#impersonate"
+            patch :contract, to: "companies#update_contract"
+            post :impersonate, to: "companies#impersonate"
           end
         end
         resources :payments, only: [ :index ]

@@ -1,5 +1,5 @@
 class Coach < ApplicationRecord
-  belongs_to :organization
+  belongs_to :company
 
   has_many :coach_locations, dependent: :destroy
   has_many :locations, through: :coach_locations

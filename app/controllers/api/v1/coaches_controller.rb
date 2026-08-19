@@ -2,12 +2,12 @@ module Api
   module V1
     class CoachesController < BaseController
       before_action -> { require_capability!(:coaches) }
-      before_action :require_organization!
+      before_action :require_company!
       before_action :set_coach, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/coaches
       def index
-        render json: { coaches: current_organization.coaches.order(:first_name).map { |c| CoachSerializer.new(c).as_json } }
+        render json: { coaches: current_company.coaches.order(:first_name).map { |c| CoachSerializer.new(c).as_json } }
       end
 
       # GET /api/v1/coaches/:id
@@ -15,12 +15,12 @@ module Api
         render json: { coach: CoachSerializer.new(@coach).as_json }
       end
 
-      # POST /api/v1/coaches — auto-assigned to the organization's one location
+      # POST /api/v1/coaches — auto-assigned to the company's one location
       def create
-        coach = current_organization.coaches.new(coach_params)
+        coach = current_company.coaches.new(coach_params)
 
         if coach.save
-          coach.coach_locations.create!(location: current_organization.location)
+          coach.coach_locations.create!(location: current_company.location)
           render json: { coach: CoachSerializer.new(coach.reload).as_json }, status: :created
         else
           render json: { error: coach.errors.full_messages.first, errors: coach.errors.full_messages }, status: :unprocessable_entity
@@ -45,7 +45,7 @@ module Api
       private
 
       def set_coach
-        @coach = current_organization.coaches.find(params[:id])
+        @coach = current_company.coaches.find(params[:id])
       end
 
       def coach_params

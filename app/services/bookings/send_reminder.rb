@@ -30,10 +30,10 @@ module Bookings
 
     def message
       session = booking.session
-      organization_name = session.location.organization.name
+      company_name = session.location.company.name
 
       "Bonjour #{booking.client.first_name}, rappel : #{session.activity.name} le " \
-        "#{session.starts_at.strftime('%d/%m/%Y à %H:%M')} chez #{organization_name}."
+        "#{session.starts_at.strftime('%d/%m/%Y à %H:%M')} chez #{company_name}."
     end
 
     # TunisieSMS expects a bare digits mobile number prefixed with the

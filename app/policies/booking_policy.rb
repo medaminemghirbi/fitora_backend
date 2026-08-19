@@ -24,7 +24,7 @@ class BookingPolicy < ApplicationPolicy
   # Owner always; staff need the `bookings` capability (manager, receptionist,
   # or a coach — narrowed to bookings on their own sessions only).
   def staff_access?
-    return false if record.session.location.organization_id != (user.organization&.id || user.staff_member&.organization_id)
+    return false if record.session.location.company_id != (user.company&.id || user.staff_member&.company_id)
 
     return true if user.owner?
 

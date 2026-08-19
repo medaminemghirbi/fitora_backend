@@ -6,7 +6,7 @@ class RecurringSchedule < ApplicationRecord
   belongs_to :activity
   belongs_to :location
   belongs_to :coach, optional: true
-  belongs_to :organization
+  belongs_to :company
 
   has_many :sessions, dependent: :nullify
 

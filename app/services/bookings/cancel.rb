@@ -16,7 +16,6 @@ module Bookings
       ActiveRecord::Base.transaction do
         booking.update!(status: :cancelled)
         booking.membership&.restore_booking!
-        booking.client_package&.restore_credit!
       end
 
       Result.new(success?: true, error: nil)

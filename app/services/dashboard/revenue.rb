@@ -1,11 +1,11 @@
 module Dashboard
   class Revenue
-    def self.call(organization:)
-      new(organization: organization).call
+    def self.call(company:)
+      new(company: company).call
     end
 
-    def initialize(organization:)
-      @organization = organization
+    def initialize(company:)
+      @company = company
     end
 
     def call
@@ -19,10 +19,10 @@ module Dashboard
 
     private
 
-    attr_reader :organization
+    attr_reader :company
 
     def paid_scope
-      organization.payments.paid
+      company.payments.paid
     end
 
     def grouped_by_day

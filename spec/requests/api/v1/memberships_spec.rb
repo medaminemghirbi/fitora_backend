@@ -2,14 +2,14 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Memberships", type: :request do
   let(:owner) { create(:user, :owner) }
-  let(:organization) { create(:organization, owner: owner) }
+  let(:company) { create(:company, owner: owner) }
 
-  describe "organization isolation" do
-    it "never exposes another organization's memberships to an owner" do
-      create(:subscription, organization: organization, subscription_plan: create(:subscription_plan))
+  describe "company isolation" do
+    it "never exposes another company's memberships to an owner" do
+      create(:contract, company: company, contract_plan: create(:contract_plan))
 
-      other_org = create(:organization)
-      other_plan = create(:membership_plan, organization: other_org)
+      other_org = create(:company)
+      other_plan = create(:membership_plan, company: other_org)
       create(:membership, membership_plan: other_plan)
 
       get "/api/v1/memberships", headers: auth_headers(owner)
@@ -20,8 +20,8 @@ RSpec.describe "Api::V1::Memberships", type: :request do
 
   describe "POST /api/v1/memberships" do
     it "lets the owner give a client a membership, active immediately" do
-      plan = create(:membership_plan, organization: organization, active: true, price: 89)
-      client = create(:client, organization: organization)
+      plan = create(:membership_plan, company: company, active: true, price: 89)
+      client = create(:client, company: company)
 
       post "/api/v1/memberships",
            params: { client_id: client.id, membership_plan_id: plan.id, payment_method: "cash", payment_amount: "89" },
@@ -34,8 +34,8 @@ RSpec.describe "Api::V1::Memberships", type: :request do
     end
 
     it "creates the membership unpaid when no payment is recorded" do
-      plan = create(:membership_plan, organization: organization, active: true)
-      client = create(:client, organization: organization)
+      plan = create(:membership_plan, company: company, active: true)
+      client = create(:client, company: company)
 
       post "/api/v1/memberships", params: { client_id: client.id, membership_plan_id: plan.id }, headers: auth_headers(owner)
 
@@ -45,9 +45,9 @@ RSpec.describe "Api::V1::Memberships", type: :request do
     end
 
     it "forbids a coach from giving a client a membership" do
-      plan = create(:membership_plan, organization: organization, active: true)
-      client = create(:client, organization: organization)
-      coach = create(:staff_member, organization: organization, role: :coach)
+      plan = create(:membership_plan, company: company, active: true)
+      client = create(:client, company: company)
+      coach = create(:staff_member, company: company, role: :coach)
 
       post "/api/v1/memberships", params: { client_id: client.id, membership_plan_id: plan.id }, headers: auth_headers(coach.user)
 
@@ -57,9 +57,9 @@ RSpec.describe "Api::V1::Memberships", type: :request do
 
   describe "POST /api/v1/memberships/:id/renew" do
     it "creates a new membership starting when the current one ends, without touching history" do
-      plan = create(:membership_plan, organization: organization, duration_days: 30)
-      client = create(:client, organization: organization)
-      original = create(:membership, client: client, membership_plan: plan, organization: organization,
+      plan = create(:membership_plan, company: company)
+      client = create(:client, company: company)
+      original = create(:membership, client: client, membership_plan: plan, company: company,
                                       starts_at: 30.days.ago, expires_at: 1.day.from_now)
 
       post "/api/v1/memberships/#{original.id}/renew", headers: auth_headers(owner)
@@ -73,15 +73,15 @@ RSpec.describe "Api::V1::Memberships", type: :request do
   end
 
   describe "GET /api/v1/memberships/:id/receipt" do
-    let(:plan) { create(:membership_plan, organization: organization, price: 89) }
-    let(:client) { create(:client, organization: organization) }
-    let(:membership) { create(:membership, client: client, membership_plan: plan, organization: organization) }
+    let(:plan) { create(:membership_plan, company: company, price: 89) }
+    let(:client) { create(:client, company: company) }
+    let(:membership) { create(:membership, client: client, membership_plan: plan, company: company) }
 
     context "on a plan with advanced reports (Premium)" do
-      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "premium")) }
+      before { create(:contract, company: company, contract_plan: create(:contract_plan, code: "premium")) }
 
       it "returns a PDF" do
-        create(:payment, organization: organization, client: client, membership: membership, amount: 89, status: :paid)
+        create(:payment, company: company, client: client, membership: membership, amount: 89, status: :paid)
 
         get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(owner)
 
@@ -99,7 +99,7 @@ RSpec.describe "Api::V1::Memberships", type: :request do
       end
 
       it "is available to staff who can see memberships, not just the owner" do
-        receptionist = create(:staff_member, organization: organization, role: :receptionist)
+        receptionist = create(:staff_member, company: company, role: :receptionist)
 
         get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(receptionist.user)
 
@@ -107,7 +107,7 @@ RSpec.describe "Api::V1::Memberships", type: :request do
       end
 
       it "forbids a coach, who has no memberships capability" do
-        coach = create(:staff_member, organization: organization, role: :coach)
+        coach = create(:staff_member, company: company, role: :coach)
 
         get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(coach.user)
 
@@ -116,7 +116,7 @@ RSpec.describe "Api::V1::Memberships", type: :request do
     end
 
     context "on Basic, which doesn't include advanced reports" do
-      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "basic")) }
+      before { create(:contract, company: company, contract_plan: create(:contract_plan, code: "basic")) }
 
       it "is forbidden with a distinguishable error code" do
         get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(owner)

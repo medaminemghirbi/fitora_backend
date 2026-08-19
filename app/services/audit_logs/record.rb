@@ -1,8 +1,8 @@
 module AuditLogs
   class Record
-    def self.call(organization:, user:, action:, auditable:, metadata: {})
+    def self.call(company:, user:, action:, auditable:, metadata: {})
       AuditLog.create!(
-        organization: organization,
+        company: company,
         user: user,
         action: action,
         auditable_type: auditable.class.name,

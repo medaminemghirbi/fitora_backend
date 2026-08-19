@@ -2,12 +2,12 @@ module Api
   module V1
     class ActivitiesController < BaseController
       before_action -> { require_capability!(:activities) }
-      before_action :require_organization!
+      before_action :require_company!
       before_action :set_activity, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/activities
       def index
-        scope = Activity.joins(:location).where(locations: { organization_id: current_organization.id })
+        scope = Activity.joins(:location).where(locations: { company_id: current_company.id })
         render json: { activities: scope.order(:name).map { |a| ActivitySerializer.new(a).as_json } }
       end
 
@@ -16,9 +16,9 @@ module Api
         render json: { activity: ActivitySerializer.new(@activity).as_json }
       end
 
-      # POST /api/v1/activities — always attaches to the organization's one location
+      # POST /api/v1/activities — always attaches to the company's one location
       def create
-        activity = current_organization.location.activities.new(activity_params)
+        activity = current_company.location.activities.new(activity_params)
 
         if activity.save
           render json: { activity: ActivitySerializer.new(activity).as_json }, status: :created
@@ -46,7 +46,7 @@ module Api
 
       def set_activity
         @activity = Activity.joins(:location)
-                             .where(locations: { organization_id: current_organization.id })
+                             .where(locations: { company_id: current_company.id })
                              .find(params[:id])
       end
 

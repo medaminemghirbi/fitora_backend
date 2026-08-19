@@ -4,7 +4,6 @@ class Activity < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :membership_plan_activities, dependent: :destroy
   has_many :membership_plans, through: :membership_plan_activities
-  has_many :packages, dependent: :nullify
 
   # "class" is a reserved Ruby word, so the CLASS activity type from the spec is
   # named group_class here (enum ordinal 2 is what's stored in the activity_type column).
@@ -20,5 +19,5 @@ class Activity < ApplicationRecord
 
   scope :active, -> { where(active: true) }
 
-  delegate :organization, to: :location
+  delegate :company, to: :location
 end

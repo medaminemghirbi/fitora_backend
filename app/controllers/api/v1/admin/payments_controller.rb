@@ -4,10 +4,10 @@ module Api
       class PaymentsController < BaseController
         before_action :require_admin!
 
-        # GET /api/v1/admin/payments?organization_id=&status=&date=
+        # GET /api/v1/admin/payments?company_id=&status=&date=
         def index
-          scope = Payment.includes(:client, :organization)
-          scope = scope.where(organization_id: params[:organization_id]) if params[:organization_id].present?
+          scope = Payment.includes(:client, :company)
+          scope = scope.where(company_id: params[:company_id]) if params[:company_id].present?
           scope = scope.where(status: params[:status]) if params[:status].present?
           scope = scope.where("payments.created_at >= ?", Date.parse(params[:date]).beginning_of_day) if params[:date].present?
           scope = scope.order(created_at: :desc)

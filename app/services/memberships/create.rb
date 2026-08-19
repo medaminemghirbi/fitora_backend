@@ -32,7 +32,7 @@ module Memberships
         membership = Membership.create!(
           client: client,
           membership_plan: membership_plan,
-          organization: membership_plan.organization,
+          company: membership_plan.company,
           status: :active,
           starts_at: starts_at,
           expires_at: starts_at + membership_plan.duration_days.days,
@@ -56,7 +56,7 @@ module Memberships
     def record_payment(membership)
       payment = Payment.create!(
         client: client,
-        organization: membership_plan.organization,
+        company: membership_plan.company,
         membership: membership,
         amount: payment_amount,
         currency: membership_plan.currency,

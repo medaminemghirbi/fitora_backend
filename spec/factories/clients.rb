@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :client do
-    organization
+    company
     first_name { "Ahmed" }
     last_name { "Ben Ali" }
     sequence(:phone) { |n| "+216 20 #{100000 + n}" }

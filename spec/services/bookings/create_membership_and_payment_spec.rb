@@ -1,11 +1,11 @@
 require "rails_helper"
 
-RSpec.describe "Bookings::Create — membership/package coverage and unpaid bookings" do
+RSpec.describe "Bookings::Create — membership coverage and unpaid bookings" do
   describe "membership_required activities" do
     it "confirms instantly and consumes a booking credit when the client has a covering membership" do
       session = create(:session, capacity: 5)
       session.activity.update!(booking_mode: :membership_required)
-      plan = create(:membership_plan, organization: session.location.organization, unlimited_bookings: false, booking_limit: 3)
+      plan = create(:membership_plan, company: session.location.company, unlimited_bookings: false, booking_limit: 3)
       membership = create(:membership, membership_plan: plan, remaining_bookings: 3)
 
       result = Bookings::Create.call(client: membership.client, session: session)
@@ -32,7 +32,7 @@ RSpec.describe "Bookings::Create — membership/package coverage and unpaid book
       session = create(:session, capacity: 5)
       session.activity.update!(booking_mode: :membership_required)
       other_activity = create(:activity, location: session.location)
-      plan = create(:membership_plan, organization: session.location.organization, unlimited_bookings: true)
+      plan = create(:membership_plan, company: session.location.company, unlimited_bookings: true)
       plan.activity_ids = [ other_activity.id ]
       membership = create(:membership, membership_plan: plan)
 
@@ -43,21 +43,21 @@ RSpec.describe "Bookings::Create — membership/package coverage and unpaid book
   end
 
   describe "pay_per_booking activities" do
-    it "consumes a package credit instead of charging when the client has one" do
+    it "consumes a booking credit instead of charging when the client has a covering membership" do
       session = create(:session, capacity: 5, price: 40)
       session.activity.update!(booking_mode: :pay_per_booking)
-      client_package = create(:client_package, remaining_credits: 3)
-      client_package.package.update!(organization: session.location.organization, activity: nil)
+      plan = create(:membership_plan, company: session.location.company, unlimited_bookings: false, booking_limit: 3)
+      membership = create(:membership, membership_plan: plan, remaining_bookings: 3)
 
-      result = Bookings::Create.call(client: client_package.client, session: session)
+      result = Bookings::Create.call(client: membership.client, session: session)
 
       expect(result.success?).to be true
       expect(result.booking).to be_confirmed
       expect(result.booking.amount).to eq(0)
-      expect(client_package.reload.remaining_credits).to eq(2)
+      expect(membership.reload.remaining_bookings).to eq(2)
     end
 
-    it "confirms the booking unpaid, with no inline payment, when there is no membership or package coverage" do
+    it "confirms the booking unpaid, with no inline payment, when there is no membership coverage" do
       session = create(:session, capacity: 5, price: 40)
       session.activity.update!(booking_mode: :pay_per_booking)
       client = create(:client)
@@ -71,7 +71,7 @@ RSpec.describe "Bookings::Create — membership/package coverage and unpaid book
       expect(Payment.count).to eq(0)
     end
 
-    it "confirms free activities exactly as before, ignoring membership/package state" do
+    it "confirms free activities exactly as before, ignoring membership state" do
       session = create(:session, capacity: 5)
       client = create(:client)
 

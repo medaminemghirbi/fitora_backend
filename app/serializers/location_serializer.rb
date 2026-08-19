@@ -6,7 +6,7 @@ class LocationSerializer
   def as_json(*)
     {
       id: location.id,
-      organization_id: location.organization_id,
+      company_id: location.company_id,
       name: location.name,
       description: location.description,
       phone: location.phone,

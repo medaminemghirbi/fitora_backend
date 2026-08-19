@@ -26,7 +26,7 @@ RSpec.describe Session, type: :model do
 
   it "is valid when the coach is assigned to the session's location" do
     activity = create(:activity)
-    coach = create(:coach, organization: activity.location.organization)
+    coach = create(:coach, company: activity.location.company)
     create(:coach_location, coach: coach, location: activity.location)
 
     session = build(:session, activity: activity, location: activity.location, coach: coach)
