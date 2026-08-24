@@ -3,21 +3,20 @@ class Company < ApplicationRecord
 
   has_many :locations, dependent: :destroy
   has_many :coaches, dependent: :destroy
-  has_one :contract, dependent: :destroy
+  has_one :subscription, dependent: :destroy
   has_many :clients, dependent: :destroy
-  has_many :membership_plans, dependent: :destroy
-  has_many :memberships, dependent: :destroy
+  has_many :contract_types, dependent: :destroy
+  has_many :contracts, dependent: :destroy
+  has_many :contract_periods, through: :contracts
   has_many :payments, dependent: :destroy
   has_many :staff_members, dependent: :destroy
   has_many :recurring_schedules, dependent: :destroy
   has_many :audit_logs, dependent: :destroy
+  has_many :library_folders, dependent: :destroy
+  has_many :library_documents, dependent: :destroy
 
   validates :name, presence: true
   validates :timezone, :currency, presence: true
-
-  def current_plan
-    contract&.contract_plan
-  end
 
   # Every company has exactly one location — created automatically at
   # signup (see Api::V1::CompaniesController#create) and never a second

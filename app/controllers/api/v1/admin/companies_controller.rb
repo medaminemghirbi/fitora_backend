@@ -3,11 +3,11 @@ module Api
     module Admin
       class CompaniesController < BaseController
         before_action :require_admin!
-        before_action :set_company, only: [ :show, :update_contract, :impersonate ]
+        before_action :set_company, only: [ :show, :update_subscription, :impersonate ]
 
         # GET /api/v1/admin/companies
         def index
-          companies = Company.includes(:owner, contract: :contract_plan).order(:name)
+          companies = Company.includes(:owner, :subscription).order(:name)
 
           render json: {
             companies: paginate(companies).map { |o| AdminCompanySerializer.new(o).as_json },
@@ -20,33 +20,28 @@ module Api
           render json: { company: AdminCompanySerializer.new(@company).as_json }
         end
 
-        # PATCH /api/v1/admin/companies/:id/contract
-        # Direct admin override — the owner is invoiced/paid outside the app
-        # (bank transfer, in person, etc.); this just applies the plan change.
-        def update_contract
-          plan = ContractPlan.find_by(id: params[:contract_plan_id])
-          return render json: { error: "Contract plan not found" }, status: :not_found if plan.nil?
+        # PATCH /api/v1/admin/companies/:id/subscription — direct admin
+        # override of a company's access status. No plans, no billing: the
+        # owner is invoiced/paid outside the app, this just grants or
+        # revokes access by hand.
+        def update_subscription
+          subscription = @company.subscription || @company.build_subscription(starts_at: Time.current)
+          previous_status = subscription.status
 
-          contract = @company.contract || @company.build_contract(starts_at: Time.current)
-          previous_plan = contract.contract_plan&.name
-
-          if contract.update(
-            contract_plan: plan,
-            status: params[:status] || contract.status,
-            auto_renew: params.fetch(:auto_renew, contract.auto_renew),
-            # An admin assigning a plan is what "upgrading" means in this
-            # app (no self-service billing) — clears the free-trial deadline
-            # by default so the company is unlocked. Pass expires_at
-            # explicitly to set a new one instead (e.g. a fixed-term deal).
+          if subscription.update(
+            status: params[:status] || subscription.status,
+            # Granting ongoing access clears the free-trial deadline by
+            # default so the company is unlocked. Pass expires_at explicitly
+            # to set a new one instead (e.g. a fixed-term arrangement).
             expires_at: params[:expires_at].presence
           )
             AuditLogs::Record.call(
-              company: @company, user: current_user, action: "contract.plan_overridden",
-              auditable: contract, metadata: { from: previous_plan, to: plan.name }
+              company: @company, user: current_user, action: "subscription.status_overridden",
+              auditable: subscription, metadata: { from: previous_status, to: subscription.status }
             )
             render json: { company: AdminCompanySerializer.new(@company.reload).as_json }
           else
-            render json: { error: contract.errors.full_messages.first, errors: contract.errors.full_messages }, status: :unprocessable_entity
+            render json: { error: subscription.errors.full_messages.first, errors: subscription.errors.full_messages }, status: :unprocessable_entity
           end
         end
 

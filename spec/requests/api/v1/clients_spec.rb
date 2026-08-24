@@ -18,30 +18,7 @@ RSpec.describe "Api::V1::Clients", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
-    it "blocks creation once the plan's client limit is reached" do
-      plan = create(:contract_plan, max_clients: 1)
-      create(:contract, company: company, contract_plan: plan)
-      create(:client, company: company)
-
-      post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(response.parsed_body["error"]).to eq("plan_limit_reached")
-    end
-
-    it "allows creation while under the plan's client limit" do
-      plan = create(:contract_plan, max_clients: 2)
-      create(:contract, company: company, contract_plan: plan)
-      create(:client, company: company)
-
-      post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
-
-      expect(response).to have_http_status(:created)
-    end
-
-    it "is never blocked when the plan has no client limit" do
-      plan = create(:contract_plan, max_clients: nil)
-      create(:contract, company: company, contract_plan: plan)
+    it "is never blocked by any client count — no plans, no limits" do
       create_list(:client, 5, company: company)
 
       post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
@@ -61,16 +38,16 @@ RSpec.describe "Api::V1::Clients", type: :request do
       expect(names).to eq([ "Ahmed Ben Ali" ])
     end
 
-    it "filters by membership_active status" do
-      with_membership = create(:client, company: company)
-      create(:membership, client: with_membership, company: company, status: :active, expires_at: 10.days.from_now)
-      without_membership = create(:client, company: company)
+    it "filters by contract_active status" do
+      with_contract = create(:client, company: company)
+      create(:contract, client: with_contract, company: company, status: :active, expires_at: 10.days.from_now)
+      without_contract = create(:client, company: company)
 
-      get "/api/v1/clients", params: { status: "membership_active" }, headers: auth_headers(owner)
+      get "/api/v1/clients", params: { status: "contract_active" }, headers: auth_headers(owner)
 
       ids = response.parsed_body["clients"].map { |c| c["id"] }
-      expect(ids).to include(with_membership.id)
-      expect(ids).not_to include(without_membership.id)
+      expect(ids).to include(with_contract.id)
+      expect(ids).not_to include(without_contract.id)
     end
 
     it "never exposes another company's clients" do

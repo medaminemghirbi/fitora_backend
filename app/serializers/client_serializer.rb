@@ -14,7 +14,7 @@ class ClientSerializer
       phone: client.phone,
       active: client.active,
       joined_at: client.joined_at,
-      current_membership: MembershipSerializer.new(client.current_membership).as_json
+      current_contract: ContractSerializer.new(client.current_contract).as_json
     }
 
     return base unless detailed

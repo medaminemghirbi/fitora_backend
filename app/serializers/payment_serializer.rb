@@ -31,7 +31,7 @@ class PaymentSerializer
   attr_reader :payment
 
   def product_name
-    return payment.membership.membership_plan.name if payment.membership
+    return payment.contract_period.contract.contract_type.name if payment.contract_period
     return payment.booking.session.activity.name if payment.booking
 
     nil

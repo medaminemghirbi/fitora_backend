@@ -11,12 +11,12 @@ module Dashboard
     def call
       {
         total_clients: company.clients.active.count,
-        active_memberships: company.memberships.currently_active.count,
+        active_contracts: company.contract_periods.currently_active.count,
         todays_bookings: todays_bookings.count,
         todays_attendance: todays_attendance_count,
         outstanding_payments: outstanding_payments_total,
         todays_schedule: todays_schedule,
-        memberships_expiring: memberships_expiring,
+        contracts_expiring: contracts_expiring,
         recent_payments: recent_payments,
         recent_clients: recent_clients
       }
@@ -42,8 +42,8 @@ module Dashboard
     def outstanding_payments_total
       unpaid_bookings = Booking.joins(:session).merge(base_sessions_scope)
                                 .where(payment_status: %i[unpaid partial]).sum(:amount)
-      unpaid_memberships = company.memberships.where(payment_status: %i[unpaid partial]).sum(:final_price)
-      unpaid_bookings + unpaid_memberships
+      unpaid_contracts = company.contract_periods.where(payment_status: %i[unpaid partial]).sum(:final_price)
+      unpaid_bookings + unpaid_contracts
     end
 
     def todays_schedule
@@ -66,9 +66,9 @@ module Dashboard
         end
     end
 
-    def memberships_expiring
-      company.memberships.expiring_soon.includes(:client, :membership_plan).order(:expires_at).limit(5).map do |m|
-        { id: m.id, client_name: m.client.full_name, plan_name: m.membership_plan.name, expires_at: m.expires_at }
+    def contracts_expiring
+      company.contract_periods.expiring_soon.includes(contract: %i[client contract_type]).order(:expires_at).limit(5).map do |period|
+        { id: period.contract_id, client_name: period.contract.client.full_name, plan_name: period.contract.contract_type.name, expires_at: period.expires_at }
       end
     end
 

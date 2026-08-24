@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe StaffMember, type: :model do
   describe "capabilities" do
-    it "grants a manager locations/activities/coaches/sessions/bookings/clients/memberships/payments/reports/checkin" do
+    it "grants a manager locations/activities/coaches/sessions/bookings/clients/contracts/payments/reports/checkin" do
       staff = build(:staff_member, role: :manager)
 
       expect(staff.can?(:locations)).to be true
@@ -23,12 +23,12 @@ RSpec.describe StaffMember, type: :model do
       expect(staff.can?(:payments)).to be false
     end
 
-    it "grants a receptionist bookings/clients/memberships/payments/checkin but not locations or sessions" do
+    it "grants a receptionist bookings/clients/contracts/payments/checkin but not locations or sessions" do
       staff = build(:staff_member, role: :receptionist)
 
       expect(staff.can?(:bookings)).to be true
       expect(staff.can?(:clients)).to be true
-      expect(staff.can?(:memberships)).to be true
+      expect(staff.can?(:contracts)).to be true
       expect(staff.can?(:payments)).to be true
       expect(staff.can?(:checkin)).to be true
       expect(staff.can?(:locations)).to be false

@@ -1,26 +1,46 @@
 class Contract < ApplicationRecord
+  belongs_to :client
+  belongs_to :contract_type
   belongs_to :company
-  belongs_to :contract_plan
+  belongs_to :created_by, class_name: "User", optional: true
 
-  enum :status, { active: 0, inactive: 1, expired: 2, cancelled: 3 }
+  has_many :contract_periods, dependent: :destroy
+  has_many :payments, through: :contract_periods
+  has_many :bookings, through: :contract_periods
 
-  validates :starts_at, presence: true
-  validates :company_id, uniqueness: true
+  validates :client_id, uniqueness: { scope: :contract_type_id }
 
-  # expires_at doubles as the free-trial deadline: set to 14 days out at
-  # signup (see Api::V1::CompaniesController#create), and cleared to nil
-  # the moment a platform admin manually assigns/renews a plan (see
-  # Api::V1::Admin::CompaniesController#update_contract) — nil means
-  # "not on a ticking clock," whether that's an active trial-free paid plan
-  # or one the admin manages by hand. Once it passes, Api::V1::BaseController
-  # locks every account in the company except the owner.
-  def locked?
-    expires_at.present? && expires_at <= Time.current
+  # Every reasoning about "the client's contract" (status, dates, price,
+  # remaining sessions) is really about their CURRENT term — the latest
+  # period — so it's delegated rather than stored flat on Contract itself.
+  # Not memoized: #reload doesn't know to clear a plain ivar, and this
+  # isn't a hot enough path to be worth the staleness risk.
+  delegate :status, :starts_at, :expires_at, :remaining_bookings, :discount, :final_price, :payment_status,
+           :pending?, :active?, :expired?, :cancelled?, :unpaid?, :partial?, :paid?,
+           to: :current_period, allow_nil: true
+
+  def current_period
+    contract_periods.order(starts_at: :desc, created_at: :desc).first
   end
 
-  def days_remaining
-    return nil if expires_at.blank?
+  def usable_for?(location:, activity:)
+    return false unless current_period&.active? && (expires_at.nil? || expires_at >= Time.current)
+    return false if contract_type.booking_limit.present? && !contract_type.unlimited_bookings? && remaining_bookings.to_i <= 0
 
-    [ (expires_at.to_date - Date.current).to_i, 0 ].max
+    contract_type.grants_access_to?(location: location, activity: activity)
+  end
+
+  def consume_booking!
+    return if contract_type.unlimited_bookings?
+    return if current_period&.remaining_bookings.nil?
+
+    current_period.decrement!(:remaining_bookings)
+  end
+
+  def restore_booking!
+    return if contract_type.unlimited_bookings?
+    return if current_period&.remaining_bookings.nil?
+
+    current_period.increment!(:remaining_bookings)
   end
 end

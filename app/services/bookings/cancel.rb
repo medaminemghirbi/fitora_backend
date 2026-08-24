@@ -15,7 +15,7 @@ module Bookings
 
       ActiveRecord::Base.transaction do
         booking.update!(status: :cancelled)
-        booking.membership&.restore_booking!
+        booking.contract_period&.contract&.restore_booking!
       end
 
       Result.new(success?: true, error: nil)

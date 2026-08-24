@@ -3,7 +3,6 @@ module Api
     class BookingsController < BaseController
       before_action :require_company!
       before_action :set_booking, only: [ :show, :cancel, :remind ]
-      before_action :require_premium!, only: [ :remind ]
 
       # GET /api/v1/bookings — filterable list of the company's bookings (coaches
       # narrowed to their own sessions)
@@ -63,8 +62,8 @@ module Api
         end
       end
 
-      # POST /api/v1/bookings/:id/remind — Premium+ "Remind client" button,
-      # sends an SMS via Sms::TunisieSmsClient (Bookings::SendReminder).
+      # POST /api/v1/bookings/:id/remind — "Remind client" button, sends an
+      # SMS via Sms::TunisieSmsClient (Bookings::SendReminder).
       def remind
         return render_forbidden unless BookingPolicy.new(current_user, @booking).remind?
 
@@ -82,13 +81,6 @@ module Api
       end
 
       private
-
-      def require_premium!
-        plan = current_company.current_plan
-        return if plan&.premium?
-
-        render json: { error: "plan_feature_locked", feature: "sms_reminders" }, status: :forbidden
-      end
 
       def org_scope
         scope = Booking.joins(session: :location).where(locations: { company_id: current_company.id })

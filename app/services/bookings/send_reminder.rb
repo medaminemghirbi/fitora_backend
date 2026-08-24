@@ -1,5 +1,5 @@
 module Bookings
-  # Premium+ "Remind client" button — sends a booking reminder by SMS via
+  # "Remind client" button — sends a booking reminder by SMS via
   # Sms::TunisieSmsClient. Best-effort: any failure (missing phone, missing
   # API credentials, gateway error) is reported back as a Result rather than
   # raised, since this is a one-off action a staff member triggers by hand.

@@ -10,50 +10,6 @@
 # Clients are business records only — they never log in.
 # Every company has exactly one location.
 
-puts "Seeding contract plans..."
-
-# Not a purchasable plan — assigned automatically at signup (see
-# Api::V1::CompaniesController#create) and never shown in the "choose a
-# plan" list on purpose (active: false keeps it out of ContractPlan.active,
-# which is what #plans queries). Full access, nothing gated, for 14 days —
-# see Contract#locked? for what happens once expires_at passes.
-ContractPlan.find_or_create_by!(code: "free_trial") do |p|
-  p.name = "Essai gratuit"
-  p.max_locations = nil
-  p.price = 0
-  p.billing_period = :monthly
-  p.active = false
-end
-
-basic = ContractPlan.find_or_create_by!(code: "basic") do |p|
-  p.name = "Basic"
-  p.max_locations = 1
-  p.max_clients = 150
-  p.max_staff = 3
-  p.price = 29
-  p.billing_period = :yearly
-end
-
-ContractPlan.find_or_create_by!(code: "premium") do |p|
-  p.name = "Premium"
-  p.max_locations = 1
-  p.max_clients = nil
-  p.max_staff = 10
-  p.price = 79
-  p.billing_period = :yearly
-end
-
-ContractPlan.find_or_create_by!(code: "ultimate") do |p|
-  p.name = "Ultimate"
-  p.max_locations = 1
-  p.max_clients = nil
-  p.max_staff = nil
-  p.price = 199
-  p.billing_period = :yearly
-end
-
-premium = ContractPlan.find_by!(code: "premium")
-
 puts "Seeding owner + company..."
 
 owner = User.find_or_create_by!(email: "owner@fitora.test") do |u|
@@ -76,11 +32,9 @@ company = Company.find_or_create_by!(owner: owner) do |o|
   o.currency = "TND"
 end
 
-Contract.find_or_create_by!(company: company) do |s|
-  s.contract_plan = premium
+Subscription.find_or_create_by!(company: company) do |s|
   s.status = :active
   s.starts_at = 1.month.ago
-  s.auto_renew = true
 end
 
 puts "Seeding the company's one location..."
@@ -102,7 +56,7 @@ gym_access = Activity.find_or_create_by!(location: sousse, name: "Gym Access") d
   a.activity_type = :open_access
   a.duration = 60
   a.capacity = 30
-  a.booking_mode = :membership_required
+  a.booking_mode = :contract_required
 end
 
 ems = Activity.find_or_create_by!(location: sousse, name: "EMS") do |a|
@@ -197,7 +151,7 @@ def next_occurrence(days_ahead:, hour:, minute: 0)
 end
 
 # Only pay_per_booking activities (EMS here) need an explicit session price —
-# everything else is either free or gated by a membership, where the
+# everything else is either free or gated by a contract, where the
 # per-session price is irrelevant and defaults to 0.
 sessions_data = [
   { activity: gym_access, coach: nil, days_ahead: 0, hour: 8 },
@@ -236,9 +190,9 @@ pilates_recurring = RecurringSchedule.find_or_create_by!(
 end
 RecurringSchedules::Generate.call(schedule: pilates_recurring)
 
-puts "Seeding membership plans..."
+puts "Seeding contract plans..."
 
-premium_plan = MembershipPlan.find_or_create_by!(company: company, name: "Premium") do |p|
+premium_plan = ContractType.find_or_create_by!(company: company, name: "Premium") do |p|
   p.description = "Unlimited access to gym, Pilates, EMS and Yoga."
   p.price = 89
   p.currency = company.currency
@@ -247,7 +201,7 @@ premium_plan = MembershipPlan.find_or_create_by!(company: company, name: "Premiu
   p.priority_booking = true
 end
 
-basic_plan = MembershipPlan.find_or_create_by!(company: company, name: "Basic") do |p|
+basic_plan = ContractType.find_or_create_by!(company: company, name: "Basic") do |p|
   p.description = "Gym access only, up to 8 bookings a month."
   p.price = 49
   p.currency = company.currency
@@ -260,7 +214,7 @@ basic_plan.activity_ids = [ gym_access.id ] if basic_plan.activities.empty?
 # Replaces the old Package/ClientPackage credits system: a plan can now cap
 # total sessions directly via session_count ("nombre de séances") instead of
 # needing a separate package purchase.
-ems_plan = MembershipPlan.find_or_create_by!(company: company, name: "EMS Pass") do |p|
+ems_plan = ContractType.find_or_create_by!(company: company, name: "EMS Pass") do |p|
   p.description = "10 EMS sessions, valid 60 days."
   p.price = 300
   p.currency = company.currency
@@ -292,36 +246,36 @@ clients = clients_data.map do |data|
 end
 sami, leila, karim, nadia, walid, mouna = clients
 
-# Sami: active Premium membership, paid in full.
-if sami.memberships.none?
-  Memberships::Create.call(
-    client: sami, membership_plan: premium_plan, created_by: manager_user,
+# Sami: active Premium contract, paid in full.
+if sami.contracts.none?
+  Contracts::Create.call(
+    client: sami, contract_type: premium_plan, created_by: manager_user,
     starts_on: 5.days.ago.to_date, payment_method: :card, payment_amount: premium_plan.price
   )
 end
 
-# Leila: active Basic membership, only partially paid.
-if leila.memberships.none?
-  Memberships::Create.call(
-    client: leila, membership_plan: basic_plan, created_by: receptionist_user,
+# Leila: active Basic contract, only partially paid.
+if leila.contracts.none?
+  Contracts::Create.call(
+    client: leila, contract_type: basic_plan, created_by: receptionist_user,
     starts_on: 10.days.ago.to_date, payment_method: :cash, payment_amount: 20
   )
 end
 
-# Nadia: Premium membership expiring in 3 days (shows up on the dashboard's
-# "memberships expiring" widget).
-if nadia.memberships.none?
-  result = Memberships::Create.call(
-    client: nadia, membership_plan: premium_plan, created_by: manager_user,
+# Nadia: Premium contract expiring in 3 days (shows up on the dashboard's
+# "contracts expiring" widget).
+if nadia.contracts.none?
+  result = Contracts::Create.call(
+    client: nadia, contract_type: premium_plan, created_by: manager_user,
     starts_on: 27.days.ago.to_date, payment_method: :card, payment_amount: premium_plan.price
   )
-  result.membership.update!(expires_at: 3.days.from_now)
+  result.contract.current_period.update!(expires_at: 3.days.from_now)
 end
 
-# Mouna: EMS Pass membership with remaining session credits.
-if mouna.memberships.none?
-  Memberships::Create.call(
-    client: mouna, membership_plan: ems_plan, created_by: owner,
+# Mouna: EMS Pass contract with remaining session credits.
+if mouna.contracts.none?
+  Contracts::Create.call(
+    client: mouna, contract_type: ems_plan, created_by: owner,
     starts_on: 2.days.ago.to_date, payment_method: :cash, payment_amount: ems_plan.price
   )
 end
@@ -341,6 +295,43 @@ end
 
 Bookings::Create.call(client: leila, session: upcoming_yoga_session) if upcoming_yoga_session && Booking.where(session: upcoming_yoga_session, client: leila).none?
 Bookings::Create.call(client: karim, session: upcoming_pilates_session) if upcoming_pilates_session && Booking.where(session: upcoming_pilates_session, client: karim).none?
+
+puts "Seeding company library folders + documents..."
+
+require "base64"
+
+# A real (if tiny) PNG so Active Storage's content-type sniffing accepts it
+# the same way it would a real upload — same trick as the request specs.
+seed_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+
+insurance_folder = LibraryFolder.find_or_create_by!(company: company, name: "Assurances") { |f| f.created_by = owner }
+legal_folder = LibraryFolder.find_or_create_by!(company: company, name: "Juridique") { |f| f.created_by = owner }
+hr_folder = LibraryFolder.find_or_create_by!(company: company, name: "Ressources humaines") { |f| f.created_by = owner }
+
+{
+  insurance_folder => [
+    { title: "Assurance responsabilité civile", reference_number: "RC-2026-0417", issued_on: 6.months.ago.to_date, expires_on: 20.days.from_now.to_date }
+  ],
+  legal_folder => [
+    { title: "Registre de commerce", reference_number: "RC-TU-884213", issued_on: 3.years.ago.to_date, expires_on: nil }
+  ],
+  hr_folder => [
+    { title: "Règlement intérieur", reference_number: nil, issued_on: 1.year.ago.to_date, expires_on: nil }
+  ]
+}.each do |folder, docs|
+  docs.each do |attrs|
+    next if folder.library_documents.exists?(title: attrs[:title])
+
+    folder.library_documents.create!(
+      company: company,
+      created_by: owner,
+      title: attrs[:title],
+      reference_number: attrs[:reference_number],
+      issued_on: attrs[:issued_on],
+      expires_on: attrs[:expires_on]
+    ) { |d| d.file.attach(io: StringIO.new(seed_png), filename: "#{attrs[:title].parameterize}.png", content_type: "image/png") }
+  end
+end
 
 puts "Seeding admin account + a second company (for the platform admin panel)..."
 
@@ -369,11 +360,9 @@ second_company = Company.find_or_create_by!(owner: second_owner) do |o|
   o.currency = "TND"
 end
 
-Contract.find_or_create_by!(company: second_company) do |s|
-  s.contract_plan = basic
+Subscription.find_or_create_by!(company: second_company) do |s|
   s.status = :active
   s.starts_at = 1.week.ago
-  s.auto_renew = false
 end
 
 Location.find_or_create_by!(company: second_company) do |l|
@@ -388,4 +377,4 @@ puts "Manager login:      manager@fitora.test / password123"
 puts "Receptionist login: receptionist@fitora.test / password123"
 puts "Coach login:        sarah.coach@fitora.test / password123"
 puts "Platform admin:     admin@fitora.test / password123"
-puts "Second owner:       owner2@fitora.test / password123 (Zen Yoga Monastir, Basic plan)"
+puts "Second owner:       owner2@fitora.test / password123 (Zen Yoga Monastir)"

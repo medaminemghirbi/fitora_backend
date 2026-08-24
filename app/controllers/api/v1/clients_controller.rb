@@ -4,10 +4,9 @@ module Api
       before_action :require_company!
       before_action -> { require_capability!(:clients) }
       before_action :set_client, only: [ :show, :update ]
-      before_action :enforce_client_limit!, only: [ :create ]
 
       # GET /api/v1/clients?search=&status=&page=
-      # status: active | inactive | membership_active | membership_expired | no_membership
+      # status: active | inactive | contract_active | contract_expired | no_contract
       def index
         clients = filtered_scope.order(:first_name, :last_name)
 
@@ -25,7 +24,7 @@ module Api
       def show
         render json: {
           client: ClientSerializer.new(@client, detailed: true).as_json,
-          memberships: @client.memberships.includes(:membership_plan).order(created_at: :desc).map { |m| MembershipSerializer.new(m).as_json },
+          contracts: @client.contracts.includes(:contract_type).order(created_at: :desc).map { |m| ContractSerializer.new(m).as_json },
           bookings: @client.bookings.includes(session: [ :activity, :location, :coach ]).order(created_at: :desc).limit(20).map { |b| BookingSerializer.new(b).as_json },
           payments: @client.payments.recent.limit(20).map { |p| PaymentSerializer.new(p).as_json }
         }
@@ -53,16 +52,6 @@ module Api
 
       private
 
-      def enforce_client_limit!
-        plan = current_company.current_plan
-        return if plan.nil? || !plan.client_limit_reached?(current_company.clients.count)
-
-        render json: {
-          error: "plan_limit_reached", limit_type: "clients", limit: plan.max_clients,
-          message: "Your plan allows up to #{plan.max_clients} clients. Upgrade to add more."
-        }, status: :unprocessable_entity
-      end
-
       def set_client
         @client = current_company.clients.find(params[:id])
       end
@@ -73,9 +62,9 @@ module Api
         case params[:status]
         when "active" then scope.active
         when "inactive" then scope.where(active: false)
-        when "membership_active" then scope.joins(:memberships).merge(Membership.currently_active).distinct
-        when "membership_expired" then scope.joins(:memberships).merge(Membership.where(status: :expired)).distinct
-        when "no_membership" then scope.where.missing(:memberships)
+        when "contract_active" then scope.joins(:contract_periods).merge(ContractPeriod.currently_active).distinct
+        when "contract_expired" then scope.joins(:contract_periods).merge(ContractPeriod.where(status: :expired)).distinct
+        when "no_contract" then scope.where.missing(:contracts)
         else scope
         end
       end

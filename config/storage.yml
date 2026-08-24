@@ -1,0 +1,13 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+# No cloud credentials configured yet — production runs on local disk same
+# as development until this app has infra to point at instead (S3, etc).
+production:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>

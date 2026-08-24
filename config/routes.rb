@@ -26,14 +26,13 @@ Rails.application.routes.draw do
       end
       resources :clients, only: [ :index, :show, :create, :update ]
 
-      get "contract", to: "contract#show"
-      get "contract/plans", to: "contract#plans"
-      post "contract/upgrade-request", to: "contract#request_upgrade"
+      get "subscription", to: "subscription#show"
 
-      resources :membership_plans, only: [ :index, :show, :create, :update ]
-      resources :memberships, only: [ :index, :show, :create ] do
+      resources :contract_types, only: [ :index, :show, :create, :update ]
+      resources :contracts, only: [ :index, :show, :create, :destroy ] do
         member do
           post :renew
+          post :cancel
           get :receipt
         end
       end
@@ -47,6 +46,12 @@ Rails.application.routes.draw do
       resources :attendance, only: [ :index, :create ]
       resources :recurring_schedules, only: [ :index, :create, :update ]
       resources :audit_logs, only: [ :index ]
+      resources :library_folders, only: [ :index, :show, :create, :update, :destroy ]
+      resources :library_documents, only: [ :index, :show, :create, :update, :destroy ] do
+        member do
+          get :file
+        end
+      end
 
       namespace :owner do
         get "dashboard", to: "dashboard#show"
@@ -57,7 +62,7 @@ Rails.application.routes.draw do
       namespace :admin do
         resources :companies, only: [ :index, :show ] do
           member do
-            patch :contract, to: "companies#update_contract"
+            patch :subscription, to: "companies#update_subscription"
             post :impersonate, to: "companies#impersonate"
           end
         end

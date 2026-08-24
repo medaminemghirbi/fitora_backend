@@ -1,9 +1,9 @@
 require "caxlsx"
 
 module Reports
-  # Builds the Premium "export" workbook an owner downloads from
+  # Builds the "export" workbook an owner downloads from
   # owner/reports — a summary sheet (revenue for the chosen period, broken
-  # down by payment method, plus client/membership/team counts) and a
+  # down by payment method, plus client/contract/team counts) and a
   # clients sheet color-coded by active/inactive status. Colors are real
   # Excel cell fills (Axlsx), not just text, since plain CSV can't carry them.
   class CompanyWorkbook
@@ -80,8 +80,8 @@ module Reports
         [ "  dont autre", revenue_by_method["other"] || 0 ],
         [ "Clients actifs", company.clients.active.count ],
         [ "Clients inactifs", company.clients.where(active: false).count ],
-        [ "Abonnements actifs", company.memberships.currently_active.count ],
-        [ "Abonnements expirés", company.memberships.expired.count ],
+        [ "Abonnements actifs", company.contract_periods.currently_active.count ],
+        [ "Abonnements expirés", company.contract_periods.expired.count ],
         [ "Membres d'équipe", company.staff_members.count ]
       ]
     end

@@ -6,13 +6,13 @@ module Api
 
       private
 
-      # The only endpoints a locked company's owner can still reach —
-      # enough to see their plan status and what it costs to upgrade, and
-      # nothing that operates the gym. Staff get no exceptions at all: once
-      # the free trial (or a fixed-term paid period) expires, only the owner
-      # has any access, and only to this much.
+      # The only endpoints a locked company's owner can still reach — enough
+      # to see their status, and nothing that operates the gym. Staff get no
+      # exceptions at all: once the free trial expires, only the owner has
+      # any access, and only to this much, until a platform admin manually
+      # grants access again (Api::V1::Admin::CompaniesController#update_subscription).
       OWNER_ALLOWED_WHEN_LOCKED = {
-        "Api::V1::ContractController" => %w[show plans request_upgrade],
+        "Api::V1::SubscriptionController" => %w[show],
         "Api::V1::CompaniesController" => %w[show]
       }.freeze
       private_constant :OWNER_ALLOWED_WHEN_LOCKED
@@ -20,14 +20,14 @@ module Api
       def enforce_trial_lock!
         return if current_user.admin?
 
-        contract = current_company&.contract
-        return unless contract&.locked?
+        subscription = current_company&.subscription
+        return unless subscription&.locked?
 
         return if current_user.owner? && OWNER_ALLOWED_WHEN_LOCKED[self.class.name]&.include?(action_name)
 
         render json: {
           error: "trial_expired",
-          message: current_user.owner? ? "Your free trial has ended. Upgrade your plan to keep using Fitora." : "This company's account is locked. Contact your gym owner."
+          message: current_user.owner? ? "Your free trial has ended. Contact Fitora to keep using your account." : "This company's account is locked. Contact your gym owner."
         }, status: :payment_required
       end
 

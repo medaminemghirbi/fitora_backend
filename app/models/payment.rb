@@ -1,7 +1,7 @@
 class Payment < ApplicationRecord
   belongs_to :client
   belongs_to :company
-  belongs_to :membership, optional: true
+  belongs_to :contract_period, optional: true
   belongs_to :booking, optional: true
   belongs_to :created_by, class_name: "User", optional: true
 
@@ -17,7 +17,7 @@ class Payment < ApplicationRecord
   private
 
   def linked_to_exactly_one_payable
-    links = [ membership_id, booking_id ].compact
-    errors.add(:base, "must be linked to a membership or booking") if links.empty?
+    links = [ contract_period_id, booking_id ].compact
+    errors.add(:base, "must be linked to a contract or booking") if links.empty?
   end
 end

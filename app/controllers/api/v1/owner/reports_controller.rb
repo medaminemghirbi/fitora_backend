@@ -4,7 +4,6 @@ module Api
       class ReportsController < BaseController
         before_action :require_owner!
         before_action :require_company!
-        before_action :require_premium!
 
         # GET /api/v1/owner/reports/export?period_type=month&period=2026-02
         # GET /api/v1/owner/reports/export?period_type=year&period=2026
@@ -18,15 +17,6 @@ module Api
                      disposition: "attachment"
         rescue Reports::Period::InvalidPeriod => e
           render json: { error: e.message }, status: :unprocessable_entity
-        end
-
-        private
-
-        def require_premium!
-          plan = current_company.current_plan
-          return if plan&.premium?
-
-          render json: { error: "plan_feature_locked", feature: "advanced_reports" }, status: :forbidden
         end
       end
     end

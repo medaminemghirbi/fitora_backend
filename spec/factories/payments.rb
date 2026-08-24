@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :payment do
     client
     company
-    membership
+    contract_period
     amount { 89 }
     currency { "TND" }
     payment_method { :cash }

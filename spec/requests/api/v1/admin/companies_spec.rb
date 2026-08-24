@@ -2,8 +2,6 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Admin::Companies", type: :request do
   let(:admin) { create(:user, :admin) }
-  let(:basic_plan) { create(:contract_plan, max_locations: 1) }
-  let(:premium_plan) { create(:contract_plan, max_locations: 3) }
 
   describe "authorization" do
     it "forbids an owner from accessing the admin companies list" do
@@ -25,42 +23,42 @@ RSpec.describe "Api::V1::Admin::Companies", type: :request do
 
   describe "GET /api/v1/admin/companies" do
     it "lists every company across every owner, not just one" do
-      org_a = create(:company)
-      org_b = create(:company)
-      create(:contract, company: org_a, contract_plan: basic_plan)
-      create(:contract, company: org_b, contract_plan: premium_plan)
+      company_a = create(:company)
+      company_b = create(:company)
+      create(:subscription, company: company_a)
+      create(:subscription, company: company_b)
 
       get "/api/v1/admin/companies", headers: auth_headers(admin)
 
       ids = response.parsed_body["companies"].map { |o| o["id"] }
-      expect(ids).to include(org_a.id, org_b.id)
+      expect(ids).to include(company_a.id, company_b.id)
     end
   end
 
-  describe "PATCH /api/v1/admin/companies/:id/contract" do
-    it "overrides an company's plan directly, with no payment involved" do
+  describe "PATCH /api/v1/admin/companies/:id/subscription" do
+    it "overrides a company's access status directly, with no payment involved" do
       company = create(:company)
-      create(:contract, company: company, contract_plan: basic_plan)
+      create(:subscription, company: company, status: :inactive)
 
-      patch "/api/v1/admin/companies/#{company.id}/contract",
-            params: { contract_plan_id: premium_plan.id },
+      patch "/api/v1/admin/companies/#{company.id}/subscription",
+            params: { status: "active" },
             headers: auth_headers(admin)
 
       expect(response).to have_http_status(:ok)
-      expect(company.reload.contract.contract_plan_id).to eq(premium_plan.id)
+      expect(company.reload.subscription.status).to eq("active")
       expect(Payment.count).to eq(0)
     end
 
-    it "creates a contract when the company has none yet" do
+    it "creates a subscription when the company has none yet" do
       company = create(:company)
 
-      patch "/api/v1/admin/companies/#{company.id}/contract",
-            params: { contract_plan_id: premium_plan.id },
+      patch "/api/v1/admin/companies/#{company.id}/subscription",
+            params: { status: "active" },
             headers: auth_headers(admin)
 
       expect(response).to have_http_status(:ok)
-      expect(company.reload.contract).to be_present
-      expect(company.contract.contract_plan_id).to eq(premium_plan.id)
+      expect(company.reload.subscription).to be_present
+      expect(company.subscription.status).to eq("active")
     end
   end
 

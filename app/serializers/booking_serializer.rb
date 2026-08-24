@@ -36,7 +36,7 @@ class BookingSerializer
   attr_reader :booking
 
   def covered_by
-    return { type: "membership", name: booking.membership.membership_plan.name } if booking.membership
+    return { type: "contract", name: booking.contract_period.contract.contract_type.name } if booking.contract_period
 
     nil
   end

@@ -16,11 +16,9 @@ class CreateSchema < ActiveRecord::Migration[8.0]
       t.index :email, unique: true
     end
 
-    # The gym/studio business itself — formerly "Organization". Its
-    # relationship with Fitora (plan, price, billing) lives separately on
-    # Contract, below; a Company having no Contract row is what "still on
-    # the free trial" means (see Subscription — now Contract — comments
-    # ported from the prior schema).
+    # The gym/studio business itself. Its access status with Fitora lives
+    # separately on Subscription, below — a Company having no Subscription
+    # row is what "still on the free trial" means.
     create_table :companies, id: :uuid do |t|
       t.references :owner, type: :uuid, null: false, foreign_key: { to_table: :users }, index: { unique: true }
       t.string :name, null: false
@@ -87,42 +85,15 @@ class CreateSchema < ActiveRecord::Migration[8.0]
       t.index [ :coach_id, :location_id ], unique: true
     end
 
-    # The organization's — now Company's — plan with Fitora itself: what it
-    # costs, what it's called (Basic/Premium/Ultimate), and its limits.
-    # Formerly SubscriptionPlan; renamed so "abonnement"/"Membership" can
-    # mean only the client-facing side without ambiguity.
-    create_table :contract_plans, id: :uuid do |t|
-      t.string :name, null: false
-      t.string :code, null: false
-      t.integer :max_locations
-      t.decimal :price, precision: 10, scale: 2, default: "0.0", null: false
-      t.integer :billing_period, default: 0, null: false
-      t.boolean :active, default: true, null: false
-      t.integer :max_clients
-      t.integer :max_staff
-      t.timestamps
-      t.index :code, unique: true
-    end
-
-    # A company's actual signed engagement with Fitora — formerly
-    # Subscription. expires_at doubles as the free-trial deadline (see
-    # Contract#locked? / BaseController#enforce_trial_lock!).
-    create_table :contracts, id: :uuid do |t|
+    # A company's access status with Fitora — no plans, no tiers, no limits.
+    # expires_at doubles as the free-trial deadline; once it passes, only a
+    # platform admin manually setting a new expires_at/status unlocks the
+    # account again (see Subscription#locked? / BaseController#enforce_trial_lock!).
+    create_table :subscriptions, id: :uuid do |t|
       t.references :company, type: :uuid, null: false, foreign_key: true, index: { unique: true }
-      t.references :contract_plan, type: :uuid, null: false, foreign_key: true, index: true
       t.integer :status, default: 0, null: false
       t.datetime :starts_at, null: false
       t.datetime :expires_at
-      t.boolean :auto_renew, default: false, null: false
-      t.timestamps
-    end
-
-    create_table :contract_upgrade_requests, id: :uuid do |t|
-      t.references :company, type: :uuid, null: false, foreign_key: true, index: true
-      t.references :contract_plan, type: :uuid, null: false, foreign_key: true, index: true
-      t.references :requested_by, type: :uuid, null: false, foreign_key: { to_table: :users }, index: true
-      t.integer :payment_method, null: false
-      t.integer :status, default: 0, null: false
       t.timestamps
     end
 

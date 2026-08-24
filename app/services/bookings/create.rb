@@ -31,12 +31,12 @@ module Bookings
         elsif activity.free?
           booking = confirm_free(locked_session)
         else
-          membership = find_membership_coverage(company: company, location: locked_session.location, activity: activity)
+          contract = find_contract_coverage(company: company, location: locked_session.location, activity: activity)
 
-          if membership
-            booking = confirm_with_membership(locked_session, membership)
-          elsif activity.membership_required?
-            error = "This client needs an active membership to book this activity."
+          if contract
+            booking = confirm_with_contract(locked_session, contract)
+          elsif activity.contract_required?
+            error = "This client needs an active contract to book this activity."
           else
             booking = confirm_unpaid(locked_session, company)
           end
@@ -58,23 +58,23 @@ module Bookings
 
     attr_reader :client, :session
 
-    def find_membership_coverage(company:, location:, activity:)
-      client.memberships.currently_active
-            .where(company: company)
-            .find { |m| m.usable_for?(location: location, activity: activity) }
+    def find_contract_coverage(company:, location:, activity:)
+      client.contracts.joins(:contract_periods).merge(ContractPeriod.currently_active)
+            .where(company: company).distinct
+            .find { |c| c.usable_for?(location: location, activity: activity) }
     end
 
-    def confirm_with_membership(locked_session, membership)
+    def confirm_with_contract(locked_session, contract)
       booking = locked_session.bookings.create!(
         client: client,
         status: :confirmed,
         amount: 0,
         currency: locked_session.activity.location.company.currency,
         payment_status: :paid,
-        membership: membership
+        contract_period: contract.current_period
       )
 
-      membership.consume_booking!
+      contract.consume_booking!
 
       booking
     end

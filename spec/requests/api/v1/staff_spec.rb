@@ -14,22 +14,7 @@ RSpec.describe "Api::V1::Staff", type: :request do
       expect(response.parsed_body["staff_member"]["role"]).to eq("manager")
     end
 
-    it "blocks creation once the plan's staff seat limit is reached" do
-      plan = create(:contract_plan, max_staff: 1)
-      create(:contract, company: company, contract_plan: plan)
-      create(:staff_member, company: company)
-
-      post "/api/v1/staff",
-           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@fitora.test", password: "password123", role: "manager" } },
-           headers: auth_headers(owner)
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(response.parsed_body["error"]).to eq("plan_limit_reached")
-    end
-
-    it "is never blocked when the plan has no staff seat limit" do
-      plan = create(:contract_plan, max_staff: nil)
-      create(:contract, company: company, contract_plan: plan)
+    it "is never blocked by any staff count — no plans, no limits" do
       create_list(:staff_member, 5, company: company)
 
       post "/api/v1/staff",

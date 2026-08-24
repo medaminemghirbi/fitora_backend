@@ -1,0 +1,78 @@
+module Contracts
+  class Create
+    Result = Struct.new(:success?, :contract, :payment, :error, keyword_init: true)
+
+    def self.call(client:, contract_type:, created_by:, starts_on: Date.current, discount: 0,
+                   payment_method: nil, payment_amount: nil, payment_notes: nil)
+      new(client: client, contract_type: contract_type, created_by: created_by, starts_on: starts_on,
+          discount: discount, payment_method: payment_method, payment_amount: payment_amount, payment_notes: payment_notes).call
+    end
+
+    def initialize(client:, contract_type:, created_by:, starts_on:, discount:, payment_method:, payment_amount:, payment_notes:)
+      @client = client
+      @contract_type = contract_type
+      @created_by = created_by
+      @starts_on = starts_on
+      @discount = discount
+      @payment_method = payment_method
+      @payment_amount = payment_amount
+      @payment_notes = payment_notes
+    end
+
+    def call
+      contract = nil
+      payment = nil
+
+      ActiveRecord::Base.transaction do
+        # Date#to_time would resolve "starts_on" in the system's local
+        # timezone rather than Time.zone, silently shifting the date by a day
+        # whenever they differ — in_time_zone is the zone-aware conversion.
+        starts_at = starts_on.in_time_zone
+
+        # One Contract envelope per (client, plan) — a second purchase of the
+        # same plan is a new period under the same contract, not a new
+        # contract; see Contract#current_period for why that matters.
+        contract = Contract.find_or_create_by!(client: client, contract_type: contract_type) do |c|
+          c.company = contract_type.company
+          c.created_by = created_by
+        end
+
+        period = contract.contract_periods.create!(
+          status: :active,
+          starts_at: starts_at,
+          expires_at: starts_at + contract_type.duration_days.days,
+          remaining_bookings: contract_type.unlimited_bookings? ? nil : contract_type.booking_limit,
+          discount: discount
+        )
+        payment = record_payment(contract, period) if payment_amount.present? && payment_amount.to_f > 0
+      end
+
+      Result.new(success?: true, contract: contract, payment: payment, error: nil)
+    rescue ActiveRecord::RecordInvalid => e
+      Result.new(success?: false, contract: nil, payment: nil, error: e.record.errors.full_messages.first)
+    end
+
+    private
+
+    attr_reader :client, :contract_type, :created_by, :starts_on, :discount, :payment_method, :payment_amount, :payment_notes
+
+    def record_payment(contract, period)
+      payment = Payment.create!(
+        client: client,
+        company: contract_type.company,
+        contract_period: period,
+        amount: payment_amount,
+        currency: contract_type.currency,
+        payment_method: payment_method.presence || :cash,
+        status: :paid,
+        paid_at: Time.current,
+        notes: payment_notes,
+        created_by: created_by
+      )
+
+      fully_paid = payment_amount.to_f >= period.final_price.to_f
+      period.update!(payment_status: fully_paid ? :paid : :partial)
+      payment
+    end
+  end
+end

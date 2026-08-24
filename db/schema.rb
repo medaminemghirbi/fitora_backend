@@ -10,11 +10,39 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_24_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
+
+  create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.uuid "record_id", null: false
+    t.uuid "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
 
   create_table "activities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "location_id", null: false
@@ -63,12 +91,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.integer "status", default: 0, null: false
     t.decimal "amount", precision: 10, scale: 2, default: "0.0", null: false
     t.string "currency", default: "TND", null: false
-    t.uuid "membership_id"
+    t.uuid "contract_period_id"
     t.integer "payment_status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["client_id"], name: "index_bookings_on_client_id"
-    t.index ["membership_id"], name: "index_bookings_on_membership_id"
+    t.index ["contract_period_id"], name: "index_bookings_on_contract_period_id"
     t.index ["session_id", "client_id"], name: "index_bookings_on_session_id_and_client_id_when_held", unique: true, where: "(status = 0)"
     t.index ["session_id"], name: "index_bookings_on_session_id"
   end
@@ -136,44 +164,100 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
   end
 
-  create_table "contract_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
-    t.string "code", null: false
-    t.integer "max_locations"
-    t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
-    t.integer "billing_period", default: 0, null: false
-    t.boolean "active", default: true, null: false
-    t.integer "max_clients"
-    t.integer "max_staff"
+  create_table "contract_periods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "contract_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "starts_at"
+    t.datetime "expires_at"
+    t.integer "remaining_bookings"
+    t.decimal "discount", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "final_price", precision: 10, scale: 2
+    t.integer "payment_status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["code"], name: "index_contract_plans_on_code", unique: true
+    t.index ["contract_id", "status"], name: "index_contract_periods_on_contract_id_and_status"
+    t.index ["contract_id"], name: "index_contract_periods_on_contract_id"
   end
 
-  create_table "contract_upgrade_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
-    t.uuid "contract_plan_id", null: false
-    t.uuid "requested_by_id", null: false
-    t.integer "payment_method", null: false
-    t.integer "status", default: 0, null: false
+  create_table "contract_type_activities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "contract_type_id", null: false
+    t.uuid "activity_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_contract_upgrade_requests_on_company_id"
-    t.index ["contract_plan_id"], name: "index_contract_upgrade_requests_on_contract_plan_id"
-    t.index ["requested_by_id"], name: "index_contract_upgrade_requests_on_requested_by_id"
+    t.index ["activity_id"], name: "index_contract_type_activities_on_activity_id"
+    t.index ["contract_type_id", "activity_id"], name: "index_plan_activities_unique", unique: true
+    t.index ["contract_type_id"], name: "index_contract_type_activities_on_contract_type_id"
+  end
+
+  create_table "contract_type_locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "contract_type_id", null: false
+    t.uuid "location_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_type_id", "location_id"], name: "index_plan_locations_unique", unique: true
+    t.index ["contract_type_id"], name: "index_contract_type_locations_on_contract_type_id"
+    t.index ["location_id"], name: "index_contract_type_locations_on_location_id"
+  end
+
+  create_table "contract_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
+    t.string "currency", default: "TND", null: false
+    t.integer "billing_period", default: 0, null: false
+    t.integer "session_count"
+    t.boolean "unlimited_bookings", default: false, null: false
+    t.integer "booking_limit"
+    t.boolean "priority_booking", default: false, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "color", default: "#4f46e5", null: false
+    t.index ["company_id"], name: "index_contract_types_on_company_id"
   end
 
   create_table "contracts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "client_id", null: false
+    t.uuid "contract_type_id", null: false
     t.uuid "company_id", null: false
-    t.uuid "contract_plan_id", null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "starts_at", null: false
-    t.datetime "expires_at"
+    t.uuid "created_by_id"
     t.boolean "auto_renew", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_contracts_on_company_id", unique: true
-    t.index ["contract_plan_id"], name: "index_contracts_on_contract_plan_id"
+    t.index ["client_id"], name: "index_contracts_on_client_id"
+    t.index ["company_id"], name: "index_contracts_on_company_id"
+    t.index ["contract_type_id"], name: "index_contracts_on_contract_type_id"
+    t.index ["created_by_id"], name: "index_contracts_on_created_by_id"
+  end
+
+  create_table "library_documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "folder_id", null: false
+    t.uuid "company_id", null: false
+    t.uuid "created_by_id"
+    t.string "title", null: false
+    t.string "reference_number"
+    t.date "issued_on"
+    t.date "expires_on"
+    t.text "notes"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "expires_on"], name: "index_library_documents_on_company_id_and_expires_on"
+    t.index ["company_id"], name: "index_library_documents_on_company_id"
+    t.index ["created_by_id"], name: "index_library_documents_on_created_by_id"
+    t.index ["folder_id"], name: "index_library_documents_on_folder_id"
+  end
+
+  create_table "library_folders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.uuid "created_by_id"
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "name"], name: "index_library_folders_on_company_id_and_name", unique: true
+    t.index ["company_id"], name: "index_library_folders_on_company_id"
+    t.index ["created_by_id"], name: "index_library_folders_on_created_by_id"
   end
 
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -195,65 +279,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.index ["company_id"], name: "index_locations_on_company_id"
   end
 
-  create_table "membership_plan_activities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "membership_plan_id", null: false
-    t.uuid "activity_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["activity_id"], name: "index_membership_plan_activities_on_activity_id"
-    t.index ["membership_plan_id", "activity_id"], name: "index_plan_activities_unique", unique: true
-    t.index ["membership_plan_id"], name: "index_membership_plan_activities_on_membership_plan_id"
-  end
-
-  create_table "membership_plan_locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "membership_plan_id", null: false
-    t.uuid "location_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["location_id"], name: "index_membership_plan_locations_on_location_id"
-    t.index ["membership_plan_id", "location_id"], name: "index_plan_locations_unique", unique: true
-    t.index ["membership_plan_id"], name: "index_membership_plan_locations_on_membership_plan_id"
-  end
-
-  create_table "membership_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
-    t.string "name", null: false
-    t.text "description"
-    t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
-    t.string "currency", default: "TND", null: false
-    t.integer "billing_period", default: 0, null: false
-    t.integer "session_count"
-    t.boolean "unlimited_bookings", default: false, null: false
-    t.integer "booking_limit"
-    t.boolean "priority_booking", default: false, null: false
-    t.boolean "active", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_membership_plans_on_company_id"
-  end
-
-  create_table "memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "client_id", null: false
-    t.uuid "membership_plan_id", null: false
-    t.uuid "company_id", null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "starts_at"
-    t.datetime "expires_at"
-    t.integer "remaining_bookings"
-    t.boolean "auto_renew", default: false, null: false
-    t.decimal "discount", precision: 10, scale: 2, default: "0.0", null: false
-    t.decimal "final_price", precision: 10, scale: 2
-    t.integer "payment_status", default: 0, null: false
-    t.uuid "created_by_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["client_id", "status"], name: "index_memberships_on_client_id_and_status"
-    t.index ["client_id"], name: "index_memberships_on_client_id"
-    t.index ["company_id"], name: "index_memberships_on_company_id"
-    t.index ["created_by_id"], name: "index_memberships_on_created_by_id"
-    t.index ["membership_plan_id"], name: "index_memberships_on_membership_plan_id"
-  end
-
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "client_id", null: false
     t.uuid "company_id", null: false
@@ -261,7 +286,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.string "currency", default: "TND", null: false
     t.integer "status", default: 0, null: false
     t.datetime "paid_at"
-    t.uuid "membership_id"
+    t.uuid "contract_period_id"
     t.uuid "booking_id"
     t.integer "payment_method", default: 0, null: false
     t.text "notes"
@@ -271,8 +296,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.index ["booking_id"], name: "index_payments_on_booking_id"
     t.index ["client_id"], name: "index_payments_on_client_id"
     t.index ["company_id"], name: "index_payments_on_company_id"
+    t.index ["contract_period_id"], name: "index_payments_on_contract_period_id"
     t.index ["created_by_id"], name: "index_payments_on_created_by_id"
-    t.index ["membership_id"], name: "index_payments_on_membership_id"
   end
 
   create_table "recurring_schedules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -338,6 +363,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.index ["user_id"], name: "index_staff_members_on_user_id", unique: true
   end
 
+  create_table "subscriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "starts_at", null: false
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_subscriptions_on_company_id", unique: true
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "first_name", null: false
     t.string "last_name", null: false
@@ -352,38 +387,41 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activities", "locations"
   add_foreign_key "attendance_records", "bookings"
   add_foreign_key "attendance_records", "users", column: "marked_by_id"
   add_foreign_key "audit_logs", "companies"
   add_foreign_key "audit_logs", "users"
   add_foreign_key "bookings", "clients"
-  add_foreign_key "bookings", "memberships"
+  add_foreign_key "bookings", "contract_periods"
   add_foreign_key "bookings", "sessions"
   add_foreign_key "clients", "companies"
   add_foreign_key "coach_locations", "coaches"
   add_foreign_key "coach_locations", "locations"
   add_foreign_key "coaches", "companies"
   add_foreign_key "companies", "users", column: "owner_id"
-  add_foreign_key "contract_upgrade_requests", "companies"
-  add_foreign_key "contract_upgrade_requests", "contract_plans"
-  add_foreign_key "contract_upgrade_requests", "users", column: "requested_by_id"
+  add_foreign_key "contract_periods", "contracts"
+  add_foreign_key "contract_type_activities", "activities"
+  add_foreign_key "contract_type_activities", "contract_types"
+  add_foreign_key "contract_type_locations", "contract_types"
+  add_foreign_key "contract_type_locations", "locations"
+  add_foreign_key "contract_types", "companies"
+  add_foreign_key "contracts", "clients"
   add_foreign_key "contracts", "companies"
-  add_foreign_key "contracts", "contract_plans"
+  add_foreign_key "contracts", "contract_types"
+  add_foreign_key "contracts", "users", column: "created_by_id"
+  add_foreign_key "library_documents", "companies"
+  add_foreign_key "library_documents", "library_folders", column: "folder_id"
+  add_foreign_key "library_documents", "users", column: "created_by_id"
+  add_foreign_key "library_folders", "companies"
+  add_foreign_key "library_folders", "users", column: "created_by_id"
   add_foreign_key "locations", "companies"
-  add_foreign_key "membership_plan_activities", "activities"
-  add_foreign_key "membership_plan_activities", "membership_plans"
-  add_foreign_key "membership_plan_locations", "locations"
-  add_foreign_key "membership_plan_locations", "membership_plans"
-  add_foreign_key "membership_plans", "companies"
-  add_foreign_key "memberships", "clients"
-  add_foreign_key "memberships", "companies"
-  add_foreign_key "memberships", "membership_plans"
-  add_foreign_key "memberships", "users", column: "created_by_id"
   add_foreign_key "payments", "bookings"
   add_foreign_key "payments", "clients"
   add_foreign_key "payments", "companies"
-  add_foreign_key "payments", "memberships"
+  add_foreign_key "payments", "contract_periods"
   add_foreign_key "payments", "users", column: "created_by_id"
   add_foreign_key "recurring_schedules", "activities"
   add_foreign_key "recurring_schedules", "coaches"
@@ -398,4 +436,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_19_220000) do
   add_foreign_key "staff_members", "coaches"
   add_foreign_key "staff_members", "companies"
   add_foreign_key "staff_members", "users"
+  add_foreign_key "subscriptions", "companies"
 end

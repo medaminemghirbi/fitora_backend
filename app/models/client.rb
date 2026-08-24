@@ -2,7 +2,8 @@ class Client < ApplicationRecord
   belongs_to :company
 
   has_many :bookings, dependent: :destroy
-  has_many :memberships, dependent: :destroy
+  has_many :contracts, dependent: :destroy
+  has_many :contract_periods, through: :contracts
   has_many :payments, dependent: :destroy
 
   before_validation { self.email = email.to_s.downcase.strip if email.present? }
@@ -23,18 +24,21 @@ class Client < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def current_membership
-    memberships.currently_active.order(expires_at: :desc).first
+  # The Contract whose current term is still active — status/dates/price
+  # live on ContractPeriod now, so this finds the contract by way of its
+  # latest period rather than a flat column on Contract itself.
+  def current_contract
+    contracts.joins(:contract_periods).merge(ContractPeriod.currently_active).order("contract_periods.expires_at DESC").first
   end
 
-  # What's still owed: unpaid/partial bookings and memberships, net of any
-  # payments already recorded against them. Not a full accounting ledger —
-  # just enough to flag a client with a balance due.
+  # What's still owed: unpaid/partial bookings and contract periods, net of
+  # any payments already recorded against them. Not a full accounting
+  # ledger — just enough to flag a client with a balance due.
   def outstanding_balance
     owed = bookings.where(payment_status: %i[unpaid partial]).sum(:amount) +
-           memberships.where(payment_status: %i[unpaid partial]).sum(:final_price)
+           contract_periods.where(payment_status: %i[unpaid partial]).sum(:final_price)
     received = payments.paid.where.not(booking_id: nil).sum(:amount) +
-               payments.paid.where.not(membership_id: nil).sum(:amount)
+               payments.paid.where.not(contract_period_id: nil).sum(:amount)
     [ owed - received, 0 ].max
   end
 

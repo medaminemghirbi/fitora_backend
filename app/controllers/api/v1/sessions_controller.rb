@@ -48,8 +48,8 @@ module Api
           capacity: session_params[:capacity].presence || activity.capacity
         )
         # No activity-level price to fall back to anymore — pricing lives on
-        # memberships. A blank price just leaves the session at the column
-        # default (0), same as any free/membership_required session.
+        # contracts. A blank price just leaves the session at the column
+        # default (0), same as any free/contract_required session.
         attributes.delete(:price) if attributes[:price].blank?
 
         result = Sessions::Create.call(attributes: attributes)

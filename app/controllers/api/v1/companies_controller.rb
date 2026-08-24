@@ -19,15 +19,11 @@ module Api
 
         ActiveRecord::Base.transaction do
           company.save!
-          # Full access, not the entry-level paid plan — see the free_trial
-          # plan's own comment in db/seeds.rb for why it's a distinct plan
-          # rather than just an unpaid stint on "basic". Contract#locked?
-          # flips on once expires_at passes, unless a platform admin
-          # upgrades them to a real plan first (which clears it). See
+          # 14-day free trial, full access, no plan to pick. Subscription#locked?
+          # flips on once expires_at passes, unless a platform admin grants
+          # ongoing access first (which clears it). See
           # Api::V1::BaseController#enforce_trial_lock!.
-          trial_plan = ContractPlan.find_by!(code: "free_trial")
-          company.create_contract!(
-            contract_plan: trial_plan,
+          company.create_subscription!(
             status: :active,
             starts_at: Time.current,
             expires_at: 14.days.from_now

@@ -1,7 +1,7 @@
 class Booking < ApplicationRecord
   belongs_to :client
   belongs_to :session
-  belongs_to :membership, optional: true
+  belongs_to :contract_period, optional: true
 
   has_many :payments, dependent: :nullify
   has_one :attendance_record, dependent: :destroy

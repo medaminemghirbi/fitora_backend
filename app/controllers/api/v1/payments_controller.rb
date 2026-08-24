@@ -29,7 +29,7 @@ module Api
       end
 
       # POST /api/v1/payments — staff manually records a payment against a
-      # client's membership or booking
+      # client's contract or booking
       def create
         client = current_company.clients.find_by(id: params[:client_id])
         return render json: { error: "Client not found" }, status: :not_found if client.nil?
@@ -37,7 +37,7 @@ module Api
         result = Payments::Record.call(
           client: client, company: current_company, created_by: current_user,
           amount: params[:amount], payment_method: params[:payment_method], notes: params[:notes],
-          membership: find_payable(client.memberships, params[:membership_id]),
+          contract_period: find_payable(client.contract_periods, params[:contract_period_id]),
           booking: find_payable(client.bookings, params[:booking_id])
         )
 

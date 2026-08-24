@@ -9,8 +9,8 @@ class StaffMember < ApplicationRecord
   # the schedule (create/edit/cancel sessions) — everyone can *view* the
   # calendar regardless of capability, see BaseController#require_staff!.
   CAPABILITIES = {
-    manager: %i[locations activities coaches sessions bookings clients memberships payments reports checkin],
-    receptionist: %i[bookings clients memberships payments checkin reports],
+    manager: %i[locations activities coaches sessions bookings clients contracts payments reports checkin company_library],
+    receptionist: %i[bookings clients contracts payments checkin reports],
     coach: %i[checkin]
   }.freeze
 

@@ -6,7 +6,7 @@ RSpec.describe "Free trial lock", type: :request do
 
   describe "an company still within its trial (or with no deadline at all)" do
     it "is never blocked" do
-      create(:contract, company: company, expires_at: 3.days.from_now)
+      create(:subscription, company: company, expires_at: 3.days.from_now)
 
       get "/api/v1/clients", headers: auth_headers(owner)
 
@@ -14,7 +14,7 @@ RSpec.describe "Free trial lock", type: :request do
     end
 
     it "with no expires_at at all is never blocked" do
-      create(:contract, company: company, expires_at: nil)
+      create(:subscription, company: company, expires_at: nil)
 
       get "/api/v1/clients", headers: auth_headers(owner)
 
@@ -23,7 +23,7 @@ RSpec.describe "Free trial lock", type: :request do
   end
 
   describe "an company whose trial has expired" do
-    let!(:contract) { create(:contract, company: company, expires_at: 1.day.ago) }
+    let!(:subscription) { create(:subscription, company: company, expires_at: 1.day.ago) }
 
     it "locks the owner out of ordinary org-scoped endpoints" do
       get "/api/v1/clients", headers: auth_headers(owner)
@@ -32,22 +32,11 @@ RSpec.describe "Free trial lock", type: :request do
       expect(response.parsed_body["error"]).to eq("trial_expired")
     end
 
-    it "still lets the owner see their own contract status" do
-      get "/api/v1/contract", headers: auth_headers(owner)
+    it "still lets the owner see their own subscription status" do
+      get "/api/v1/subscription", headers: auth_headers(owner)
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["locked"]).to be true
-    end
-
-    it "still lets the owner submit an upgrade request" do
-      plan = create(:contract_plan)
-
-      post "/api/v1/contract/upgrade-request",
-           params: { plan_id: plan.id, payment_method: "bank_transfer" },
-           headers: auth_headers(owner)
-
-      expect(response).to have_http_status(:created)
-      expect(response.parsed_body["status"]).to eq("pending")
     end
 
     it "still lets the owner see their company profile" do
@@ -65,7 +54,7 @@ RSpec.describe "Free trial lock", type: :request do
     it "locks out staff entirely, with no exceptions" do
       staff = create(:staff_member, company: company, role: :manager)
 
-      get "/api/v1/contract", headers: auth_headers(staff.user)
+      get "/api/v1/subscription", headers: auth_headers(staff.user)
 
       expect(response).to have_http_status(:payment_required)
     end
@@ -78,19 +67,36 @@ RSpec.describe "Free trial lock", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "is lifted once a platform admin assigns a plan" do
+    it "is lifted once a platform admin grants access" do
       admin = create(:user, :admin)
-      new_plan = create(:contract_plan)
 
-      patch "/api/v1/admin/companies/#{company.id}/contract",
-            params: { contract_plan_id: new_plan.id },
+      patch "/api/v1/admin/companies/#{company.id}/subscription",
+            params: { status: "active" },
             headers: auth_headers(admin)
 
-      expect(contract.reload.expires_at).to be_nil
-      expect(contract.locked?).to be false
+      expect(subscription.reload.expires_at).to be_nil
+      expect(subscription.locked?).to be false
 
       get "/api/v1/clients", headers: auth_headers(owner)
       expect(response).to have_http_status(:ok)
+    end
+  end
+
+  describe "a company whose subscription status is set to anything but active" do
+    %i[inactive expired cancelled].each do |status|
+      it "locks coaches and managers out even with no expires_at deadline (status: #{status})" do
+        subscription = create(:subscription, company: company, status: status, expires_at: nil)
+        coach = create(:staff_member, company: company, role: :coach)
+        manager = create(:staff_member, company: company, role: :manager)
+
+        expect(subscription.locked?).to be true
+
+        get "/api/v1/clients", headers: auth_headers(coach.user)
+        expect(response).to have_http_status(:payment_required)
+
+        get "/api/v1/clients", headers: auth_headers(manager.user)
+        expect(response).to have_http_status(:payment_required)
+      end
     end
   end
 end

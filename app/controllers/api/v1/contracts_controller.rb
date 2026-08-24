@@ -1,0 +1,121 @@
+module Api
+  module V1
+    class ContractsController < BaseController
+      before_action :require_company!
+      before_action -> { require_capability!(:contracts) }
+      before_action :set_contract, only: [ :show, :renew, :cancel, :destroy, :receipt ]
+
+      # GET /api/v1/contracts — the company's contracts (filterable by status)
+      def index
+        contracts = current_company.contracts.includes(:contract_type, :client, :contract_periods).order(created_at: :desc)
+        # status lives on ContractPeriod now — filter by each contract's
+        # CURRENT (latest) period only, not any period in its history.
+        if params[:status].present?
+          contracts = contracts.joins(:contract_periods)
+            .where(contract_periods: { status: params[:status] })
+            .where(<<~SQL.squish)
+              contract_periods.id = (
+                SELECT cp2.id FROM contract_periods cp2
+                WHERE cp2.contract_id = contracts.id
+                ORDER BY cp2.starts_at DESC, cp2.created_at DESC LIMIT 1
+              )
+            SQL
+        end
+
+        render json: {
+          contracts: paginate(contracts).map { |m| ContractSerializer.new(m).as_json },
+          meta: pagination_meta(contracts)
+        }
+      end
+
+      # GET /api/v1/contracts/:id
+      def show
+        render json: { contract: ContractSerializer.new(@contract).as_json }
+      end
+
+      # POST /api/v1/contracts — staff gives a client a contract
+      def create
+        client = current_company.clients.find_by(id: params[:client_id])
+        return render json: { error: "Client not found" }, status: :not_found if client.nil?
+
+        plan = current_company.contract_types.active.find_by(id: params[:contract_type_id])
+        return render json: { error: "Contract plan not found" }, status: :not_found if plan.nil?
+
+        result = Contracts::Create.call(
+          client: client, contract_type: plan, created_by: current_user,
+          starts_on: params[:starts_on].present? ? Date.parse(params[:starts_on]) : Date.current,
+          discount: params[:discount].presence || 0,
+          payment_method: params[:payment_method], payment_amount: params[:payment_amount], payment_notes: params[:payment_notes]
+        )
+
+        if result.success?
+          render json: {
+            contract: ContractSerializer.new(result.contract).as_json,
+            payment: PaymentSerializer.new(result.payment).as_json
+          }, status: :created
+        else
+          render json: { error: result.error }, status: :unprocessable_entity
+        end
+      end
+
+      # POST /api/v1/contracts/:id/renew
+      def renew
+        result = Contracts::Renew.call(contract: @contract, created_by: current_user)
+
+        if result.success?
+          render json: { contract: ContractSerializer.new(result.contract).as_json }, status: :created
+        else
+          render json: { error: result.error }, status: :unprocessable_entity
+        end
+      end
+
+      # POST /api/v1/contracts/:id/cancel
+      def cancel
+        result = Contracts::Cancel.call(contract: @contract)
+
+        if result.success?
+          AuditLogs::Record.call(
+            company: current_company, user: current_user, action: "contract.cancelled",
+            auditable: @contract, metadata: { client: @contract.client.full_name, plan: @contract.contract_type.name }
+          )
+          render json: { contract: ContractSerializer.new(@contract.reload).as_json }
+        else
+          render json: { error: result.error }, status: :unprocessable_entity
+        end
+      end
+
+      # DELETE /api/v1/contracts/:id — only once cancelled, so this is
+      # never how history disappears by accident: cancel (soft, reversible
+      # by re-subscribing) is the everyday action; destroy is a deliberate
+      # second step for actually clearing clutter out of a client's history.
+      def destroy
+        unless @contract.cancelled?
+          return render json: { error: "Only cancelled contracts can be deleted" }, status: :unprocessable_entity
+        end
+
+        metadata = { client: @contract.client.full_name, plan: @contract.contract_type.name }
+        @contract.destroy!
+        AuditLogs::Record.call(company: current_company, user: current_user, action: "contract.deleted", auditable: @contract, metadata: metadata)
+
+        head :no_content
+      end
+
+      # GET /api/v1/contracts/:id/receipt — available to anyone who can
+      # already see this contract (require_capability!(:contracts)).
+      def receipt
+        pdf_data = Receipts::ContractPdf.call(contract: @contract)
+
+        send_data pdf_data,
+                   filename: "recu-#{@contract.client.full_name.parameterize}-#{@contract.id.split('-').first}.pdf",
+                   type: "application/pdf",
+                   disposition: "attachment"
+      end
+
+      private
+
+      def set_contract
+        @contract = current_company.contracts.find(params[:id])
+      end
+    end
+  end
+end
