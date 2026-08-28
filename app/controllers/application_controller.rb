@@ -10,15 +10,30 @@ class ApplicationController < ActionController::API
     render_unauthorized and return if token.blank?
 
     claims = JwtService.decode(token)
-    @current_user = User.active.find_by(id: claims[:user_id])
-    @current_impersonator = User.active.find_by(id: claims[:impersonator_id]) if claims[:impersonator_id]
-    render_unauthorized if @current_user.nil?
+
+    if claims[:client_id]
+      @current_client = Client.active.find_by(id: claims[:client_id])
+      render_unauthorized if @current_client.nil?
+    else
+      @current_user = User.active.find_by(id: claims[:user_id])
+      @current_impersonator = User.active.find_by(id: claims[:impersonator_id]) if claims[:impersonator_id]
+      render_unauthorized if @current_user.nil?
+    end
   rescue JwtService::DecodeError
     render_unauthorized
   end
 
   def current_user
     @current_user
+  end
+
+  # A Client authenticated through their own mobile login (see
+  # Api::V1::AuthController#login) — mutually exclusive with current_user.
+  # Every existing controller keeps assuming current_user is present because
+  # nothing client-facing exists yet; this is here so that surface can be
+  # built later without touching the auth core again.
+  def current_client
+    @current_client
   end
 
   # The admin who is impersonating current_user, if this is an impersonation

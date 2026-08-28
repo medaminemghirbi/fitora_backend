@@ -3,7 +3,7 @@ module Api
     class CoachesController < BaseController
       before_action -> { require_capability!(:coaches) }
       before_action :require_company!
-      before_action :set_coach, only: [ :show, :update, :destroy ]
+      before_action :set_coach, only: [ :show, :update, :destroy, :set_login ]
 
       # GET /api/v1/coaches
       def index
@@ -40,6 +40,24 @@ module Api
       def destroy
         @coach.update!(active: false)
         render json: { coach: CoachSerializer.new(@coach).as_json }
+      end
+
+      # POST /api/v1/coaches/:id/login — provisions (or resets) the coach's
+      # own mobile-app login. Owner and manager already reach this via the
+      # blanket :coaches capability; this is also how a receptionist gets to
+      # do it, without being handed general staff management.
+      def set_login
+        result = Coaches::SetLogin.call(coach: @coach, email: params[:email], password: params[:password])
+
+        if result.success?
+          AuditLogs::Record.call(
+            company: current_company, user: current_user, action: "coach.login_set",
+            auditable: @coach, metadata: { email: params[:email] }
+          )
+          render json: { coach: CoachSerializer.new(@coach.reload).as_json }
+        else
+          render json: { error: result.error }, status: :unprocessable_entity
+        end
       end
 
       private

@@ -11,6 +11,7 @@ class AdminCompanySerializer
       country: company.country,
       currency: company.currency,
       active: company.active,
+      mobile_auth_key: company.mobile_auth_key,
       created_at: company.created_at,
       locations_count: company.locations.count,
       trial_locked: company.subscription&.locked? || false,

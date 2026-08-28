@@ -30,6 +30,10 @@ gem "prawn-table"
 # Prawn uses Matrix internally — no longer a Ruby default gem, must be explicit
 gem "matrix"
 
+# QR code for the company mobile pairing key — generated server-side (SVG)
+# so the key itself never leaves the app to a third-party QR API.
+gem "rqrcode"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

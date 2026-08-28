@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_24_120001) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_120001) do
     t.datetime "joined_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "password_digest"
     t.index ["company_id", "first_name", "last_name"], name: "index_clients_on_company_id_and_first_name_and_last_name"
     t.index ["company_id"], name: "index_clients_on_company_id"
   end
@@ -161,7 +162,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_120001) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slug"
+    t.string "primary_color"
+    t.string "mobile_auth_key", null: false
+    t.index ["mobile_auth_key"], name: "index_companies_on_mobile_auth_key", unique: true
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
+    t.index ["slug"], name: "index_companies_on_slug", unique: true
   end
 
   create_table "contract_periods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

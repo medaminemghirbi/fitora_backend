@@ -19,11 +19,21 @@ class CompanySerializer
       longitude: company.longitude,
       timezone: company.timezone,
       currency: company.currency,
-      active: company.active
+      active: company.active,
+      slug: company.slug,
+      primary_color: company.primary_color,
+      logo_url: logo_url,
+      mobile_auth_key: company.mobile_auth_key
     }
   end
 
   private
 
   attr_reader :company
+
+  def logo_url
+    return nil unless company.logo.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_path(company.logo, only_path: true)
+  end
 end

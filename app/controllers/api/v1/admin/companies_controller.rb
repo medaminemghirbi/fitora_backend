@@ -3,7 +3,7 @@ module Api
     module Admin
       class CompaniesController < BaseController
         before_action :require_admin!
-        before_action :set_company, only: [ :show, :update_subscription, :impersonate ]
+        before_action :set_company, only: [ :show, :update_subscription, :update_mobile_key, :impersonate ]
 
         # GET /api/v1/admin/companies
         def index
@@ -42,6 +42,24 @@ module Api
             render json: { company: AdminCompanySerializer.new(@company.reload).as_json }
           else
             render json: { error: subscription.errors.full_messages.first, errors: subscription.errors.full_messages }, status: :unprocessable_entity
+          end
+        end
+
+        # PATCH /api/v1/admin/companies/:id/mobile_key — the only way to set
+        # the mobile pairing key to a specific value rather than a random
+        # one; the owner-facing endpoint can only regenerate (see
+        # Api::V1::CompaniesController#regenerate_mobile_key).
+        def update_mobile_key
+          previous_key = @company.mobile_auth_key
+
+          if @company.update(mobile_auth_key: params[:mobile_auth_key])
+            AuditLogs::Record.call(
+              company: @company, user: current_user, action: "admin.mobile_key_overridden",
+              auditable: @company, metadata: { from: previous_key, to: @company.mobile_auth_key }
+            )
+            render json: { company: AdminCompanySerializer.new(@company).as_json }
+          else
+            render json: { error: @company.errors.full_messages.first, errors: @company.errors.full_messages }, status: :unprocessable_entity
           end
         end
 

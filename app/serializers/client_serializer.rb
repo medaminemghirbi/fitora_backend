@@ -13,6 +13,7 @@ class ClientSerializer
       email: client.email,
       phone: client.phone,
       active: client.active,
+      login_enabled: client.login_enabled?,
       joined_at: client.joined_at,
       current_contract: ContractSerializer.new(client.current_contract).as_json
     }

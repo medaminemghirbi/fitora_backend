@@ -15,7 +15,9 @@ class CoachSerializer
       bio: coach.bio,
       photo_url: coach.photo_url,
       active: coach.active,
-      location_ids: coach.location_ids
+      location_ids: coach.location_ids,
+      has_login: coach.staff_member.present?,
+      login_email: coach.staff_member&.user&.email
     }
   end
 

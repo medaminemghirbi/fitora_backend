@@ -1,0 +1,28 @@
+# The public-within-the-app subset of Company — safe for any authenticated
+# member (owner or staff) to read, unlike CompanySerializer's full profile
+# (phone/email/address/etc.), which stays owner-only.
+class CompanyBrandingSerializer
+  def initialize(company)
+    @company = company
+  end
+
+  def as_json(*)
+    return nil if company.nil?
+
+    {
+      name: company.name,
+      primary_color: company.primary_color,
+      logo_url: logo_url
+    }
+  end
+
+  private
+
+  attr_reader :company
+
+  def logo_url
+    return nil unless company.logo.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_path(company.logo, only_path: true)
+  end
+end

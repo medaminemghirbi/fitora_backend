@@ -59,12 +59,37 @@ module Api
         end
       end
 
+      # POST /api/v1/company/regenerate_mobile_key — the owner can only
+      # roll a fresh random key, never set one by hand (that's admin-only,
+      # see Api::V1::Admin::CompaniesController#update_mobile_key).
+      def regenerate_mobile_key
+        require_company!
+        return if performed?
+
+        current_company.regenerate_mobile_auth_key!
+        AuditLogs::Record.call(company: current_company, user: current_user, action: "mobile_key.regenerated", auditable: current_company)
+        render json: { company: CompanySerializer.new(current_company).as_json }
+      end
+
+      # GET /api/v1/company/mobile_key_qr — SVG, generated fresh each call
+      # (a handful of characters is cheap to re-encode; not worth caching).
+      def mobile_key_qr
+        require_company!
+        return if performed?
+
+        qr = RQRCode::QRCode.new(current_company.mobile_auth_key)
+        svg = qr.as_svg(offset: 8, color: "000", fill: "fff", module_size: 8, use_path: true)
+
+        send_data svg, type: "image/svg+xml", disposition: "inline"
+      end
+
       private
 
       def company_params
         params.require(:company).permit(
           :name, :description, :phone, :email, :country, :city,
-          :address, :latitude, :longitude, :timezone, :currency
+          :address, :latitude, :longitude, :timezone, :currency,
+          :slug, :primary_color, :logo
         )
       end
     end

@@ -18,6 +18,20 @@ RSpec.describe "Api::V1::Contracts", type: :request do
     end
   end
 
+  describe "GET /api/v1/contracts" do
+    it "filters by contract_type_id" do
+      premium = create(:contract_type, company: company, name: "Premium")
+      basic = create(:contract_type, company: company, name: "Basic")
+      premium_contract = create(:contract, contract_type: premium, company: company)
+      create(:contract, contract_type: basic, company: company)
+
+      get "/api/v1/contracts", params: { contract_type_id: premium.id }, headers: auth_headers(owner)
+
+      ids = response.parsed_body["contracts"].map { |c| c["id"] }
+      expect(ids).to eq([ premium_contract.id ])
+    end
+  end
+
   describe "POST /api/v1/contracts" do
     it "lets the owner give a client a contract, active immediately" do
       plan = create(:contract_type, company: company, active: true, price: 89)

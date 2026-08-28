@@ -81,7 +81,8 @@ module Api
       def client_params
         params.require(:client).permit(
           :first_name, :last_name, :email, :phone, :date_of_birth, :gender,
-          :address, :emergency_contact_name, :emergency_contact_phone, :notes, :active
+          :address, :emergency_contact_name, :emergency_contact_phone, :notes, :active,
+          :password
         )
       end
     end

@@ -8,11 +8,20 @@ Rails.application.routes.draw do
       post "auth/logout", to: "auth#logout"
       get "auth/me", to: "auth#me"
 
-      resource :company, only: [ :show, :update, :create ]
+      resource :company, only: [ :show, :update, :create ] do
+        post :regenerate_mobile_key
+        get :mobile_key_qr
+      end
+      get "branding", to: "branding#show"
+      get "pairing/:mobile_auth_key", to: "pairing#show"
 
       resource :location, only: [ :show, :update ]
       resources :activities
-      resources :coaches
+      resources :coaches do
+        member do
+          post :login, to: "coaches#set_login"
+        end
+      end
       resources :sessions, only: [ :index, :show, :create, :update ] do
         member do
           post :cancel
@@ -63,6 +72,7 @@ Rails.application.routes.draw do
         resources :companies, only: [ :index, :show ] do
           member do
             patch :subscription, to: "companies#update_subscription"
+            patch :mobile_key, to: "companies#update_mobile_key"
             post :impersonate, to: "companies#impersonate"
           end
         end

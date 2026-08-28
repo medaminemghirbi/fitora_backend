@@ -8,6 +8,7 @@ class ContractSerializer
 
     {
       id: contract.id,
+      current_period_id: contract.current_period&.id,
       status: contract.status,
       starts_at: contract.starts_at,
       expires_at: contract.expires_at,

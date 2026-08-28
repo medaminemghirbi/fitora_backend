@@ -10,7 +10,7 @@ class StaffMember < ApplicationRecord
   # calendar regardless of capability, see BaseController#require_staff!.
   CAPABILITIES = {
     manager: %i[locations activities coaches sessions bookings clients contracts payments reports checkin company_library],
-    receptionist: %i[bookings clients contracts payments checkin reports],
+    receptionist: %i[bookings clients contracts payments checkin reports coaches],
     coach: %i[checkin]
   }.freeze
 

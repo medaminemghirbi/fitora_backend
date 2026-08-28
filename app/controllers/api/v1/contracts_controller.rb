@@ -5,7 +5,8 @@ module Api
       before_action -> { require_capability!(:contracts) }
       before_action :set_contract, only: [ :show, :renew, :cancel, :destroy, :receipt ]
 
-      # GET /api/v1/contracts — the company's contracts (filterable by status)
+      # GET /api/v1/contracts — the company's contracts (filterable by status
+      # and/or contract_type_id)
       def index
         contracts = current_company.contracts.includes(:contract_type, :client, :contract_periods).order(created_at: :desc)
         # status lives on ContractPeriod now — filter by each contract's
@@ -21,6 +22,7 @@ module Api
               )
             SQL
         end
+        contracts = contracts.where(contract_type_id: params[:contract_type_id]) if params[:contract_type_id].present?
 
         render json: {
           contracts: paginate(contracts).map { |m| ContractSerializer.new(m).as_json },
