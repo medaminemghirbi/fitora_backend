@@ -24,7 +24,8 @@ class CompanySerializer
       slug: company.slug,
       primary_color: company.primary_color,
       logo_url: logo_url,
-      mobile_auth_key: company.mobile_auth_key
+      mobile_auth_key: company.mobile_auth_key,
+      nav_labels: company.nav_labels
     }
   end
 

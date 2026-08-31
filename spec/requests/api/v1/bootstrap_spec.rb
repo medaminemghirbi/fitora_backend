@@ -16,6 +16,7 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     expect(body["role"]["key"]).to eq("owner")
     expect(body["permissions"]).to match_array(Permission::ALL)
     expect(body["modules"]).to match_array(%w[core fitness])
+    expect(body["nav_labels"]).to eq({})
     expect(body["subscription"]).to include("status", "locked", "trial_days_remaining")
   end
 
@@ -28,6 +29,14 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     expect(body["company"]).to be_nil
     expect(body["branding"]["name"]).to eq(company.name)
     expect(body["permissions"]).to include("bookings")
+  end
+
+  it "carries per-company navigation label overrides" do
+    company.update!(nav_labels: { "nav.clients" => "Patients" })
+
+    get "/api/v1/bootstrap", headers: auth_headers(owner)
+
+    expect(response.parsed_body["nav_labels"]).to eq("nav.clients" => "Patients")
   end
 
   it "drops a disabled module's permissions" do

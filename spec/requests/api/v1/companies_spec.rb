@@ -21,6 +21,17 @@ RSpec.describe "Api::V1::Companies", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/company — navigation labels" do
+    it "stores string overrides and drops blank ones" do
+      patch "/api/v1/company",
+            params: { company: { nav_labels: { "nav.clients" => "Patients", "nav.contracts" => "  ", "nav.calendar" => "Rendez-vous" } } },
+            headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:ok)
+      expect(company.reload.nav_labels).to eq("nav.clients" => "Patients", "nav.calendar" => "Rendez-vous")
+    end
+  end
+
   describe "PATCH /api/v1/company — branding" do
     it "sets a slug and a primary color" do
       patch "/api/v1/company", params: { company: { slug: "power-gym", primary_color: "#ff5500" } }, headers: auth_headers(owner)

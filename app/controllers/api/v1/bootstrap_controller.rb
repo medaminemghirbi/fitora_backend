@@ -22,6 +22,7 @@ module Api
           role: resolved.role,
           permissions: resolved.permissions,
           modules: company&.enabled_module_keys || [],
+          nav_labels: company&.nav_labels || {},
           subscription: subscription_json(company)
         }
       end

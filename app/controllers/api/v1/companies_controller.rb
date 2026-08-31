@@ -100,12 +100,27 @@ module Api
       private
 
       def company_params
-        params.require(:company).permit(
+        permitted = params.require(:company).permit(
           :name, :description, :phone, :email, :country, :city,
           :address, :latitude, :longitude, :timezone, :currency,
           :slug, :primary_color, :logo,
           working_days: []
         )
+        permitted[:nav_labels] = nav_labels_param if params[:company].key?(:nav_labels)
+        permitted
+      end
+
+      # nav_labels is an open-ended {labelKey => custom label} map, so it's
+      # sanitised by hand rather than through strong-params: string keys and
+      # values only, blanks dropped (a blank means "revert to the default").
+      def nav_labels_param
+        raw = params[:company][:nav_labels]
+        return {} unless raw.respond_to?(:each_pair)
+
+        raw.each_pair.filter_map { |key, value|
+          label = value.to_s.strip
+          [ key.to_s, label ] if label.present?
+        }.to_h
       end
     end
   end
