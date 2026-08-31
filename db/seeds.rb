@@ -348,7 +348,7 @@ sami, leila, karim, nadia, walid, mouna = clients
 if sami.contracts.none?
   Contracts::Create.call(
     client: sami, contract_type: premium_plan, created_by: manager_user,
-    starts_on: 5.days.ago.to_date, payment_method: :card, payment_amount: premium_plan.price
+    starts_on: 5.days.ago.to_date, payment_method: :bank_transfer, payment_amount: premium_plan.price
   )
 end
 
@@ -365,7 +365,7 @@ end
 if nadia.contracts.none?
   result = Contracts::Create.call(
     client: nadia, contract_type: premium_plan, created_by: manager_user,
-    starts_on: 27.days.ago.to_date, payment_method: :card, payment_amount: premium_plan.price
+    starts_on: 27.days.ago.to_date, payment_method: :bank_transfer, payment_amount: premium_plan.price
   )
   result.contract.current_period.update!(expires_at: 3.days.from_now)
 end

@@ -30,11 +30,22 @@ RSpec.describe Contracts::Create do
     client = create(:client, company: plan.company)
     staff = create(:user, :owner)
 
-    result = described_class.call(client: client, contract_type: plan, created_by: staff, payment_method: "card", payment_amount: "89")
+    result = described_class.call(client: client, contract_type: plan, created_by: staff, payment_method: "bank_transfer", payment_amount: "89")
 
     expect(result.payment).to be_present
     expect(result.payment).to be_paid
     expect(result.contract).to be_paid
+  end
+
+  it "falls back to cash when given an unsupported payment method (card is out of scope)" do
+    plan = create(:contract_type, price: 50)
+    client = create(:client, company: plan.company)
+    staff = create(:user, :owner)
+
+    result = described_class.call(client: client, contract_type: plan, created_by: staff, payment_method: "card", payment_amount: "50")
+
+    expect(result.payment).to be_paid
+    expect(result.payment.payment_method).to eq("cash")
   end
 
   it "marks the contract partially paid when the payment is less than the final price" do

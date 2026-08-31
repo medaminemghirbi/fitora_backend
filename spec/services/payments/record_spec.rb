@@ -24,7 +24,7 @@ RSpec.describe Payments::Record do
     described_class.call(client: client, company: company, created_by: staff, amount: 25, payment_method: :cash, booking: booking)
     expect(booking.reload).to be_partial
 
-    described_class.call(client: client, company: company, created_by: staff, amount: 15, payment_method: :card, booking: booking)
+    described_class.call(client: client, company: company, created_by: staff, amount: 15, payment_method: :bank_transfer, booking: booking)
     expect(booking.reload).to be_paid
   end
 

@@ -63,7 +63,7 @@ module Contracts
         contract_period: period,
         amount: payment_amount,
         currency: contract_type.currency,
-        payment_method: payment_method.presence || :cash,
+        payment_method: Payment::SELECTABLE_METHODS.include?(payment_method.to_s) ? payment_method : :cash,
         status: :paid,
         paid_at: Time.current,
         notes: payment_notes,
