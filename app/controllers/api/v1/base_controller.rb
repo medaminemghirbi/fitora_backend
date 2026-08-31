@@ -55,13 +55,21 @@ module Api
       end
 
       # True for the owner (always) or for staff whose role grants this
-      # capability (StaffMember::CAPABILITIES) — the only two ways into any
-      # endpoint gated by this check.
+      # capability — the only two ways into any endpoint gated by this check.
       def require_capability!(capability)
         return if current_user.owner?
         return if current_staff_member&.active? && current_staff_member.can?(capability)
 
         render_forbidden
+      end
+
+      # Guards a domain module's endpoints — the API-side equivalent of the
+      # frontend moduleGuard. A company that hasn't enabled the module can't
+      # reach its resources even by calling the API directly.
+      def require_module!(key)
+        return if current_company&.module_enabled?(key)
+
+        render json: { error: "module_not_enabled", message: "This feature is not enabled for your company." }, status: :forbidden
       end
 
       # Anyone with a seat in the company can see the calendar — the schedule is

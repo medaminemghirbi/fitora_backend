@@ -1,6 +1,7 @@
 module Api
   module V1
     class ContractTypesController < BaseController
+      before_action -> { require_module!(:fitness) }
       before_action :require_company!
       before_action -> { require_capability!(:contracts) }
       before_action :set_plan, only: [ :show, :update ]

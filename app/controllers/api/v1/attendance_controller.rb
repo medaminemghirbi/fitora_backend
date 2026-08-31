@@ -1,6 +1,7 @@
 module Api
   module V1
     class AttendanceController < BaseController
+      before_action -> { require_module!(:fitness) }
       before_action :require_company!
       before_action :require_attendance_access!, only: [ :index, :create ]
 

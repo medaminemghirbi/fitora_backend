@@ -1,6 +1,7 @@
 module Api
   module V1
     class SessionsController < BaseController
+      before_action -> { require_module!(:fitness) }
       before_action :require_company!
       before_action :require_staff!, only: [ :index, :show ]
       before_action :require_session_management!, only: [ :create, :update, :cancel ]

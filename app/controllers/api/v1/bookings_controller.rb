@@ -1,6 +1,7 @@
 module Api
   module V1
     class BookingsController < BaseController
+      before_action -> { require_module!(:fitness) }
       before_action :require_company!
       before_action :set_booking, only: [ :show, :cancel, :remind ]
 

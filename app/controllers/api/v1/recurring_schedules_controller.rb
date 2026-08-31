@@ -1,6 +1,7 @@
 module Api
   module V1
     class RecurringSchedulesController < BaseController
+      before_action -> { require_module!(:fitness) }
       before_action :require_company!
       before_action -> { require_capability!(:sessions) }, only: [ :index, :create, :update ]
       before_action :set_schedule, only: [ :update ]
