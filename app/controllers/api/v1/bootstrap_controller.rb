@@ -23,6 +23,7 @@ module Api
           permissions: resolved.permissions,
           modules: company&.enabled_module_keys || [],
           nav_labels: company&.nav_labels || {},
+          roles: (company&.roles&.ordered || []).map { |r| { key: r.key, name: r.name } },
           subscription: subscription_json(company)
         }
       end
