@@ -11,6 +11,7 @@ FactoryBot.define do
     after(:create) do |company|
       create(:location, company: company) unless company.locations.exists?
       Role.seed_defaults_for(company) if company.roles.empty?
+      CompanyModule.sync_defaults_for(company) if company.company_modules.empty?
     end
   end
 end

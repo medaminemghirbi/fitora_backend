@@ -20,6 +20,7 @@ class Company < ApplicationRecord
   has_many :payments, dependent: :destroy
   has_many :staff_members, dependent: :destroy
   has_many :roles, dependent: :destroy
+  has_many :company_modules, dependent: :destroy
   has_many :work_contract_types, dependent: :destroy
   has_many :work_contracts, dependent: :destroy
   has_many :absence_types, dependent: :destroy
@@ -59,6 +60,17 @@ class Company < ApplicationRecord
 
   def regenerate_mobile_auth_key!
     update!(mobile_auth_key: self.class.generate_mobile_auth_key)
+  end
+
+  # Keys of the modules switched on for this company — always includes
+  # "core". Drives which permissions exist, which nav appears, and which
+  # domain routes are reachable.
+  def enabled_module_keys
+    ([ ModuleRegistry::CORE_KEY ] + company_modules.enabled.pluck(:key)).uniq
+  end
+
+  def module_enabled?(key)
+    key.to_s == ModuleRegistry::CORE_KEY || company_modules.enabled.exists?(key: key.to_s)
   end
 
   # True when the company operates on the given date's weekday.

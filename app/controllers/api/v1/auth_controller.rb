@@ -64,30 +64,8 @@ module Api
       # hard-coded map. Owners get every permission; a platform admin gets
       # none (the /admin surface isn't capability-gated).
       def permissions
-        return render json: { role: nil, permissions: [] } if current_user.admin?
-
-        if current_user.owner?
-          owner_role = current_user.company&.roles&.find_by(key: "owner")
-          return render json: {
-            role: role_json(owner_role) || { key: "owner", name: "Propriétaire" },
-            permissions: owner_role&.permissions || Permission::ALL
-          }
-        end
-
-        staff_member = current_user.staff_member
-        role = staff_member&.assigned_role
-        render json: {
-          role: role_json(role) || (staff_member && { key: staff_member.role, name: staff_member.role.to_s.humanize }),
-          permissions: staff_member ? staff_member.permission_keys : []
-        }
-      end
-
-      private
-
-      def role_json(role)
-        return nil if role.nil?
-
-        { key: role.key, name: role.name }
+        resolved = Permissions::Resolve.call(user: current_user)
+        render json: { role: resolved.role, permissions: resolved.permissions }
       end
     end
   end

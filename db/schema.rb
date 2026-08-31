@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_31_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_31_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -182,6 +182,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_120000) do
     t.index ["mobile_auth_key"], name: "index_companies_on_mobile_auth_key", unique: true
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
     t.index ["slug"], name: "index_companies_on_slug", unique: true
+  end
+
+  create_table "company_modules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "key", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "key"], name: "index_company_modules_on_company_id_and_key", unique: true
+    t.index ["company_id"], name: "index_company_modules_on_company_id"
   end
 
   create_table "contract_periods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -503,6 +513,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_120000) do
   add_foreign_key "coach_locations", "locations"
   add_foreign_key "coaches", "companies"
   add_foreign_key "companies", "users", column: "owner_id"
+  add_foreign_key "company_modules", "companies"
   add_foreign_key "contract_periods", "contracts"
   add_foreign_key "contract_type_activities", "activities"
   add_foreign_key "contract_type_activities", "contract_types"
