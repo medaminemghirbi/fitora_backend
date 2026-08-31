@@ -25,13 +25,27 @@ class CompanySerializer
       primary_color: company.primary_color,
       logo_url: logo_url,
       mobile_auth_key: company.mobile_auth_key,
-      nav_labels: company.nav_labels
+      nav_labels: company.nav_labels,
+      modules: modules
     }
   end
 
   private
 
   attr_reader :company
+
+  def modules
+    enabled = company.enabled_module_keys
+    ModuleRegistry::CATALOG.map do |key, meta|
+      {
+        key: key,
+        name: meta[:name],
+        description: meta[:description],
+        optional: !meta[:always_on],
+        enabled: enabled.include?(key)
+      }
+    end
+  end
 
   def logo_url
     return nil unless company.logo.attached?

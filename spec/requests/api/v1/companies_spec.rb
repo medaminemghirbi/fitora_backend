@@ -21,6 +21,34 @@ RSpec.describe "Api::V1::Companies", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/company/modules" do
+    it "toggles an optional module and ignores core / unknown keys" do
+      patch "/api/v1/company/modules",
+            params: { modules: { fitness: false, core: false, teleport: true } },
+            headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["modules"]).to eq(%w[core])
+      expect(company.reload).not_to be_module_enabled("fitness")
+      expect(company).to be_module_enabled("core")
+    end
+
+    it "is owner-only" do
+      staff = create(:staff_member, company: company, role: :manager)
+      patch "/api/v1/company/modules", params: { modules: { fitness: false } }, headers: auth_headers(staff.user)
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "GET /api/v1/company — module catalog" do
+    it "lists every module with its enabled flag" do
+      get "/api/v1/company", headers: auth_headers(owner)
+      mods = response.parsed_body["company"]["modules"]
+      expect(mods.map { |m| m["key"] }).to match_array(%w[core fitness])
+      expect(mods.find { |m| m["key"] == "core" }).to include("optional" => false, "enabled" => true)
+    end
+  end
+
   describe "PATCH /api/v1/company — navigation labels" do
     it "stores string overrides and drops blank ones" do
       patch "/api/v1/company",

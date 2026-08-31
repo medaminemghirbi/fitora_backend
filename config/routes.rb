@@ -13,6 +13,7 @@ Rails.application.routes.draw do
       resource :company, only: [ :show, :update, :create ] do
         post :regenerate_mobile_key
         get :mobile_key_qr
+        patch :modules, to: "companies#update_modules"
       end
       get "branding", to: "branding#show"
       get "pairing/:mobile_auth_key", to: "pairing#show"
