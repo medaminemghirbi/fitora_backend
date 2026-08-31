@@ -14,7 +14,7 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     expect(body["company"]["id"]).to eq(company.id)
     expect(body["branding"]["name"]).to eq(company.name)
     expect(body["role"]["key"]).to eq("owner")
-    expect(body["permissions"]).to match_array(Permission::ALL)
+    expect(body["permissions"]).to match_array(ModuleRegistry.permissions_for(company.enabled_module_keys))
     expect(body["modules"]).to match_array(%w[core fitness])
     expect(body["nav_labels"]).to eq({})
     expect(body["subscription"]).to include("status", "locked", "trial_days_remaining")

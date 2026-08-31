@@ -2,6 +2,7 @@ class Client < ApplicationRecord
   belongs_to :company
 
   has_many :bookings, dependent: :destroy
+  has_many :appointments, dependent: :destroy
   has_many :contracts, dependent: :destroy
   has_many :contract_periods, through: :contracts
   has_many :payments, dependent: :destroy

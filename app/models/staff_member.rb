@@ -28,6 +28,7 @@ class StaffMember < ApplicationRecord
   has_many :locations, through: :staff_member_locations
   has_many :work_contracts, dependent: :destroy
   has_many :leave_requests, dependent: :destroy
+  has_many :appointments, dependent: :nullify
 
   enum :role, ROLES
 

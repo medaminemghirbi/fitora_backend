@@ -17,6 +17,7 @@ module Permission
     "payments"        => "Payments",
     "reports"         => "Dashboard & reports",
     "checkin"         => "Attendance check-in",
+    "appointments"    => "Appointments",
     "locations"       => "Locations",
     "company_library" => "Document library"
   }.freeze

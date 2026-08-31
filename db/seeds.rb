@@ -475,6 +475,55 @@ end
 WorkContractType.seed_defaults_for(second_company)
 AbsenceType.seed_defaults_for(second_company)
 
+puts "Seeding a third company on the Medical preset (appointments module)..."
+
+third_owner = User.find_or_create_by!(email: "owner3@fitora.test") do |u|
+  u.first_name = "Nour"
+  u.last_name = "Ben Youssef"
+  u.password = "password123"
+  u.role = :owner
+  u.locale = "fr"
+end
+
+cabinet = Company.find_or_create_by!(owner: third_owner) do |o|
+  o.name = "Cabinet Médical Nour"
+  o.description = "Cabinet de médecine générale"
+  o.city = "Tunis"
+  o.country = "Tunisia"
+  o.timezone = "Africa/Tunis"
+  o.currency = "TND"
+end
+
+Subscription.find_or_create_by!(company: cabinet) { |s| s.status = :active; s.starts_at = 2.weeks.ago }
+Role.seed_defaults_for(cabinet)
+IndustryPreset.apply(cabinet, "medical")
+Location.find_or_create_by!(company: cabinet) { |l| l.name = "Cabinet Nour"; l.city = "Tunis"; l.timezone = "Africa/Tunis" }
+WorkContractType.seed_defaults_for(cabinet)
+AbsenceType.seed_defaults_for(cabinet)
+
+consultation = cabinet.appointment_types.find_by!(name: "Rendez-vous")
+patients = [
+  { first_name: "Sami", last_name: "Trabelsi", phone: "+216 21 100 100" },
+  { first_name: "Leila", last_name: "Gharbi", phone: "+216 21 200 200" },
+  { first_name: "Karim", last_name: "Jendoubi", phone: "+216 21 300 300" }
+].map do |attrs|
+  cabinet.clients.find_or_create_by!(phone: attrs[:phone]) do |c|
+    c.first_name = attrs[:first_name]
+    c.last_name = attrs[:last_name]
+    c.joined_at = rand(10..90).days.ago
+  end
+end
+
+patients.each_with_index do |patient, i|
+  starts_at = Time.current.change(hour: 9, min: 0) + (i + 1).days + (i * 45).minutes
+  next if cabinet.appointments.exists?(client: patient, starts_at: starts_at)
+
+  cabinet.appointments.create!(
+    client: patient, appointment_type: consultation, created_by: third_owner,
+    starts_at: starts_at, status: i.zero? ? :confirmed : :scheduled
+  )
+end
+
 puts "Seed complete."
 puts "Owner login:        owner@fitora.test / password123"
 puts "Manager login:      manager@fitora.test / password123"
@@ -482,3 +531,4 @@ puts "Receptionist login: receptionist@fitora.test / password123"
 puts "Coach login:        sarah.coach@fitora.test / password123"
 puts "Platform admin:     admin@fitora.test / password123"
 puts "Second owner:       owner2@fitora.test / password123 (Zen Yoga Monastir)"
+puts "Third owner:        owner3@fitora.test / password123 (Cabinet Médical Nour — preset Médical)"

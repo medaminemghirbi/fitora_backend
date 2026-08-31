@@ -63,6 +63,12 @@ Rails.application.routes.draw do
       resources :work_contracts, only: [ :index, :show, :create, :update, :destroy ]
       resources :leave_requests, only: [ :index, :create, :update, :destroy ]
 
+      # Generic appointments module (opt-in per company)
+      resources :appointment_types, only: [ :index, :create, :update, :destroy ]
+      resources :appointments, only: [ :index, :show, :create, :update, :destroy ] do
+        member { post :cancel }
+      end
+
       resources :attendance, only: [ :index, :create ]
       resources :recurring_schedules, only: [ :index, :create, :update ]
       resources :audit_logs, only: [ :index ]

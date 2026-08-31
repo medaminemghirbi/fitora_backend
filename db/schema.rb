@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_31_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -70,6 +70,41 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_150000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["location_id"], name: "index_activities_on_location_id"
+  end
+
+  create_table "appointment_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "name", null: false
+    t.integer "duration_minutes", default: 30, null: false
+    t.string "color", default: "#4f46e5", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "name"], name: "index_appointment_types_on_company_id_and_name", unique: true
+    t.index ["company_id"], name: "index_appointment_types_on_company_id"
+  end
+
+  create_table "appointments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.uuid "client_id", null: false
+    t.uuid "staff_member_id"
+    t.uuid "appointment_type_id"
+    t.uuid "location_id"
+    t.uuid "created_by_id"
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.integer "status", default: 0, null: false
+    t.string "title"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_type_id"], name: "index_appointments_on_appointment_type_id"
+    t.index ["client_id"], name: "index_appointments_on_client_id"
+    t.index ["company_id", "starts_at"], name: "index_appointments_on_company_id_and_starts_at"
+    t.index ["company_id"], name: "index_appointments_on_company_id"
+    t.index ["location_id"], name: "index_appointments_on_location_id"
+    t.index ["staff_member_id"], name: "index_appointments_on_staff_member_id"
   end
 
   create_table "attendance_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -503,6 +538,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_150000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activities", "locations"
+  add_foreign_key "appointment_types", "companies"
+  add_foreign_key "appointments", "appointment_types"
+  add_foreign_key "appointments", "clients"
+  add_foreign_key "appointments", "companies"
+  add_foreign_key "appointments", "locations"
+  add_foreign_key "appointments", "staff_members"
+  add_foreign_key "appointments", "users", column: "created_by_id"
   add_foreign_key "attendance_records", "bookings"
   add_foreign_key "attendance_records", "users", column: "marked_by_id"
   add_foreign_key "audit_logs", "companies"

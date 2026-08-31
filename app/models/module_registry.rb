@@ -22,6 +22,12 @@ module ModuleRegistry
       description: "Activities, class scheduling, bookings, attendance and memberships.",
       permissions: %w[activities sessions bookings checkin contracts],
       always_on: false
+    },
+    "appointments" => {
+      name: "Rendez-vous",
+      description: "Agenda, créneaux et prise de rendez-vous individuels — pour le médical, la beauté, le juridique…",
+      permissions: %w[appointments],
+      always_on: false
     }
     # medical / legal / beauty / … slot in here as they're built. Adding one
     # must not require touching the core.

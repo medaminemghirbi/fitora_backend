@@ -26,6 +26,8 @@ class Company < ApplicationRecord
   has_many :absence_types, dependent: :destroy
   has_many :leave_requests, dependent: :destroy
   has_many :recurring_schedules, dependent: :destroy
+  has_many :appointment_types, dependent: :destroy
+  has_many :appointments, dependent: :destroy
   has_many :audit_logs, dependent: :destroy
   has_many :library_folders, dependent: :destroy
   has_many :library_documents, dependent: :destroy

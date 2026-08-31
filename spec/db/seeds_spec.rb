@@ -13,8 +13,12 @@ RSpec.describe "db/seeds.rb" do
 
     expect(User.find_by(email: "owner@fitora.test")).to be_present
     expect(User.find_by(email: "admin@fitora.test")&.role).to eq("admin")
-    expect(Company.count).to eq(2)
+    expect(Company.count).to eq(3)
     expect(Company.find_by(name: "Fitora Fitness Sousse").subscription).to be_present
+    medical = Company.find_by(name: "Cabinet Médical Nour")
+    expect(medical.industry).to eq("medical")
+    expect(medical.enabled_module_keys).to match_array(%w[core appointments])
+    expect(medical.appointments.count).to be_positive
     expect(StaffMember.pluck(:role).uniq).to match_array(%w[manager receptionist coach])
     expect(Session.count).to be_positive
   end

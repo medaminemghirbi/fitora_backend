@@ -22,10 +22,13 @@ module Permissions
       available = company ? ModuleRegistry.permissions_for(company.enabled_module_keys) : Permission::ALL
 
       if user.owner?
+        # The owner always has every permission the enabled modules expose —
+        # the stored "owner" Role row is cosmetic (its name), so new modules
+        # light up for them without re-seeding.
         owner_role = company&.roles&.find_by(key: "owner")
         return Result.new(
           role: role_hash(owner_role) || { key: "owner", name: "Propriétaire" },
-          permissions: (owner_role&.permissions || Permission::ALL) & available
+          permissions: available
         )
       end
 

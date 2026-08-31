@@ -32,7 +32,7 @@ RSpec.describe "Api::V1::Companies", type: :request do
       expect(response).to have_http_status(:created)
       created = Company.find_by(owner: fresh_owner)
       expect(created.industry).to eq("medical")
-      expect(created.enabled_module_keys).to eq(%w[core])
+      expect(created.enabled_module_keys).to match_array(%w[core appointments])
       expect(created.nav_labels).to include("nav.clients" => "Patients")
       expect(created.roles.find_by(key: "coach").name).to eq("Praticien")
     end
@@ -87,8 +87,9 @@ RSpec.describe "Api::V1::Companies", type: :request do
     it "lists every module with its enabled flag" do
       get "/api/v1/company", headers: auth_headers(owner)
       mods = response.parsed_body["company"]["modules"]
-      expect(mods.map { |m| m["key"] }).to match_array(%w[core fitness])
+      expect(mods.map { |m| m["key"] }).to match_array(ModuleRegistry::KEYS)
       expect(mods.find { |m| m["key"] == "core" }).to include("optional" => false, "enabled" => true)
+      expect(mods.find { |m| m["key"] == "appointments" }).to include("optional" => true, "enabled" => false)
     end
   end
 

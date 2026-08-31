@@ -4,11 +4,13 @@ RSpec.describe IndustryPreset do
   let(:company) { create(:company) }
 
   describe ".apply" do
-    it "medical: core only, renamed roles, Patients label, stamped industry" do
+    it "medical: core + appointments, renamed roles, Patients label, stamped industry" do
       described_class.apply(company, "medical")
       company.reload
 
-      expect(company.enabled_module_keys).to eq(%w[core])
+      expect(company.enabled_module_keys).to match_array(%w[core appointments])
+      expect(company.appointment_types.count).to be_positive
+      expect(company.roles.find_by(key: "coach").permissions).to include("appointments")
       expect(company.roles.find_by(key: "coach").name).to eq("Praticien")
       expect(company.roles.find_by(key: "receptionist").name).to eq("Secrétaire")
       expect(company.nav_labels).to include("nav.clients" => "Patients")
