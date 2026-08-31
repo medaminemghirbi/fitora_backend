@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_31_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_31_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -180,6 +180,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_140000) do
     t.string "mobile_auth_key", null: false
     t.integer "working_days", default: [1, 2, 3, 4, 5], null: false, array: true
     t.jsonb "nav_labels", default: {}, null: false
+    t.string "industry"
     t.index ["mobile_auth_key"], name: "index_companies_on_mobile_auth_key", unique: true
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
     t.index ["slug"], name: "index_companies_on_slug", unique: true

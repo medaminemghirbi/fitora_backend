@@ -14,6 +14,7 @@ Rails.application.routes.draw do
         post :regenerate_mobile_key
         get :mobile_key_qr
         patch :modules, to: "companies#update_modules"
+        patch :industry, to: "companies#update_industry"
       end
       get "branding", to: "branding#show"
       get "pairing/:mobile_auth_key", to: "pairing#show"

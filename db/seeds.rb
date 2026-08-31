@@ -38,7 +38,7 @@ Subscription.find_or_create_by!(company: company) do |s|
 end
 
 Role.seed_defaults_for(company)
-CompanyModule.sync_defaults_for(company)
+IndustryPreset.apply(company, "fitness")
 
 puts "Seeding the company's one location..."
 
@@ -464,7 +464,7 @@ Subscription.find_or_create_by!(company: second_company) do |s|
 end
 
 Role.seed_defaults_for(second_company)
-CompanyModule.sync_defaults_for(second_company)
+IndustryPreset.apply(second_company, "fitness")
 
 Location.find_or_create_by!(company: second_company) do |l|
   l.name = "Zen Yoga Monastir"

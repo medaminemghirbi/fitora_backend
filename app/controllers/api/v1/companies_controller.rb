@@ -24,9 +24,10 @@ module Api
           # rename them, re-permission them, or add its own from Settings.
           Role.seed_defaults_for(company)
 
-          # Enable the default module set (core + fitness). A later onboarding
-          # step can let the company choose a different mix.
-          CompanyModule.sync_defaults_for(company)
+          # Apply the industry preset the owner picked at signup: enables its
+          # modules, renames the built-in roles, seeds nav-label overrides.
+          # Falls back to the generic preset (core only) when none is given.
+          IndustryPreset.apply(company, params[:industry])
           # 14-day free trial, full access, no plan to pick. Subscription#locked?
           # flips on once expires_at passes, unless a platform admin grants
           # ongoing access first (which clears it). See
@@ -71,6 +72,23 @@ module Api
         else
           render json: { error: current_company.errors.full_messages.first, errors: current_company.errors.full_messages }, status: :unprocessable_entity
         end
+      end
+
+      # PATCH /api/v1/company/industry — re-apply an industry preset from
+      # Settings. Overwrites module toggles, built-in role names and the
+      # preset's nav labels; a company's own custom labels/roles are kept
+      # unless the preset overrides that exact key.
+      def update_industry
+        require_company!
+        return if performed?
+
+        unless IndustryPreset.exists?(params[:industry])
+          return render json: { error: "unknown_industry" }, status: :unprocessable_entity
+        end
+
+        IndustryPreset.apply(current_company, params[:industry])
+        AuditLogs::Record.call(company: current_company, user: current_user, action: "industry.changed", auditable: current_company, metadata: { industry: params[:industry] })
+        render json: { company: CompanySerializer.new(current_company.reload).as_json }
       end
 
       # PATCH /api/v1/company/modules — enable/disable optional capability

@@ -26,7 +26,9 @@ class CompanySerializer
       logo_url: logo_url,
       mobile_auth_key: company.mobile_auth_key,
       nav_labels: company.nav_labels,
-      modules: modules
+      modules: modules,
+      industry: company.industry,
+      industry_options: IndustryPreset.options
     }
   end
 
