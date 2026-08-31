@@ -7,6 +7,7 @@ Rails.application.routes.draw do
       post "auth/login", to: "auth#login"
       post "auth/logout", to: "auth#logout"
       get "auth/me", to: "auth#me"
+      get "me/permissions", to: "auth#permissions"
 
       resource :company, only: [ :show, :update, :create ] do
         post :regenerate_mobile_key

@@ -19,6 +19,7 @@ class Company < ApplicationRecord
   has_many :contract_periods, through: :contracts
   has_many :payments, dependent: :destroy
   has_many :staff_members, dependent: :destroy
+  has_many :roles, dependent: :destroy
   has_many :work_contract_types, dependent: :destroy
   has_many :work_contracts, dependent: :destroy
   has_many :absence_types, dependent: :destroy

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_31_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -359,6 +359,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
     t.index ["weekdays"], name: "index_recurring_schedules_on_weekdays", using: :gin
   end
 
+  create_table "roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "permissions", default: [], null: false, array: true
+    t.boolean "builtin", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "key"], name: "index_roles_on_company_id_and_key", unique: true
+    t.index ["company_id"], name: "index_roles_on_company_id"
+  end
+
   create_table "sessions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "activity_id", null: false
     t.uuid "location_id", null: false
@@ -397,8 +410,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "role_id"
     t.index ["coach_id"], name: "index_staff_members_on_coach_id"
     t.index ["company_id"], name: "index_staff_members_on_company_id"
+    t.index ["role_id"], name: "index_staff_members_on_role_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id", unique: true
   end
 
@@ -517,6 +532,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
   add_foreign_key "recurring_schedules", "coaches"
   add_foreign_key "recurring_schedules", "companies"
   add_foreign_key "recurring_schedules", "locations"
+  add_foreign_key "roles", "companies"
   add_foreign_key "sessions", "activities"
   add_foreign_key "sessions", "coaches"
   add_foreign_key "sessions", "locations"
@@ -525,6 +541,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
   add_foreign_key "staff_member_locations", "staff_members"
   add_foreign_key "staff_members", "coaches"
   add_foreign_key "staff_members", "companies"
+  add_foreign_key "staff_members", "roles"
   add_foreign_key "staff_members", "users"
   add_foreign_key "subscriptions", "companies"
   add_foreign_key "work_contract_types", "companies"

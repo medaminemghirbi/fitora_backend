@@ -7,6 +7,9 @@ class StaffMemberSerializer
     {
       id: staff_member.id,
       role: staff_member.role,
+      role_key: staff_member.assigned_role&.key || staff_member.role,
+      role_name: staff_member.assigned_role&.name,
+      permissions: staff_member.permission_keys,
       active: staff_member.active,
       user: {
         id: staff_member.user.id,

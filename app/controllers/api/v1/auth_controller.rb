@@ -1,7 +1,7 @@
 module Api
   module V1
     class AuthController < ApplicationController
-      before_action :authenticate_request!, only: [ :me, :logout ]
+      before_action :authenticate_request!, only: [ :me, :logout, :permissions ]
 
       # POST /api/v1/auth/register — a gym signing up for Fitora. Every other
       # account (manager/receptionist/coach) is created by the owner via
@@ -56,6 +56,38 @@ module Api
         else
           render json: { account_type: "user", user: UserSerializer.new(current_user).as_json }
         end
+      end
+
+      # GET /api/v1/me/permissions — the resolved capability list for the
+      # signed-in staff login, plus the role it came from. The frontend
+      # renders navigation and guards page access from this rather than a
+      # hard-coded map. Owners get every permission; a platform admin gets
+      # none (the /admin surface isn't capability-gated).
+      def permissions
+        return render json: { role: nil, permissions: [] } if current_user.admin?
+
+        if current_user.owner?
+          owner_role = current_user.company&.roles&.find_by(key: "owner")
+          return render json: {
+            role: role_json(owner_role) || { key: "owner", name: "Propriétaire" },
+            permissions: owner_role&.permissions || Permission::ALL
+          }
+        end
+
+        staff_member = current_user.staff_member
+        role = staff_member&.assigned_role
+        render json: {
+          role: role_json(role) || (staff_member && { key: staff_member.role, name: staff_member.role.to_s.humanize }),
+          permissions: staff_member ? staff_member.permission_keys : []
+        }
+      end
+
+      private
+
+      def role_json(role)
+        return nil if role.nil?
+
+        { key: role.key, name: role.name }
       end
     end
   end

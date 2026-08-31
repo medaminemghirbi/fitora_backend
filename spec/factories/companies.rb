@@ -10,6 +10,7 @@ FactoryBot.define do
     # before exercising anything that reads company.location.
     after(:create) do |company|
       create(:location, company: company) unless company.locations.exists?
+      Role.seed_defaults_for(company) if company.roles.empty?
     end
   end
 end

@@ -19,6 +19,10 @@ module Api
 
         ActiveRecord::Base.transaction do
           company.save!
+
+          # Built-in roles (owner/manager/receptionist/coach) — a company can
+          # rename them, re-permission them, or add its own from Settings.
+          Role.seed_defaults_for(company)
           # 14-day free trial, full access, no plan to pick. Subscription#locked?
           # flips on once expires_at passes, unless a platform admin grants
           # ongoing access first (which clears it). See

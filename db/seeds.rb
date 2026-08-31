@@ -37,6 +37,8 @@ Subscription.find_or_create_by!(company: company) do |s|
   s.starts_at = 1.month.ago
 end
 
+Role.seed_defaults_for(company)
+
 puts "Seeding the company's one location..."
 
 sousse = Location.find_or_create_by!(company: company) do |l|
@@ -459,6 +461,8 @@ Subscription.find_or_create_by!(company: second_company) do |s|
   s.status = :active
   s.starts_at = 1.week.ago
 end
+
+Role.seed_defaults_for(second_company)
 
 Location.find_or_create_by!(company: second_company) do |l|
   l.name = "Zen Yoga Monastir"
