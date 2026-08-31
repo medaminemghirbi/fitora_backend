@@ -19,6 +19,7 @@ class CompanySerializer
       longitude: company.longitude,
       timezone: company.timezone,
       currency: company.currency,
+      working_days: company.working_days,
       active: company.active,
       slug: company.slug,
       primary_color: company.primary_color,

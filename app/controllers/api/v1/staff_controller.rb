@@ -3,12 +3,24 @@ module Api
     class StaffController < BaseController
       before_action :require_company!
       before_action :require_staff_manager!
-      before_action :set_staff_member, only: [ :update ]
+      before_action :set_staff_member, only: [ :show, :update ]
 
       # GET /api/v1/staff
       def index
         staff = current_company.staff_members.includes(:user, :coach).order(:role)
         render json: { staff: staff.map { |s| StaffMemberSerializer.new(s).as_json } }
+      end
+
+      # GET /api/v1/staff/:id — the HR "fiche employé" header: identity plus a
+      # summary of the current work contract and the paid-leave balance.
+      def show
+        contract = @staff_member.current_work_contract
+
+        render json: {
+          staff_member: StaffMemberSerializer.new(@staff_member).as_json,
+          current_work_contract: contract && WorkContractSerializer.new(contract).as_json,
+          paid_leave_balance: @staff_member.paid_leave_balance
+        }
       end
 
       # POST /api/v1/staff — auto-assigned to the company's one location

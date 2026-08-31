@@ -51,7 +51,14 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :staff, only: [ :index, :create, :update ]
+      resources :staff, only: [ :index, :show, :create, :update ]
+
+      # RH — employment contracts + leave (foundation for the pré-fiche de paie)
+      resources :work_contract_types, only: [ :index, :create, :update, :destroy ]
+      resources :absence_types, only: [ :index, :create, :update, :destroy ]
+      resources :work_contracts, only: [ :index, :show, :create, :update, :destroy ]
+      resources :leave_requests, only: [ :index, :create, :update, :destroy ]
+
       resources :attendance, only: [ :index, :create ]
       resources :recurring_schedules, only: [ :index, :create, :update ]
       resources :audit_logs, only: [ :index ]
@@ -66,6 +73,8 @@ Rails.application.routes.draw do
         get "dashboard", to: "dashboard#show"
         get "revenue", to: "revenue#show"
         get "reports/export", to: "reports#export"
+        get "payroll", to: "payroll#index"
+        get "payroll/export", to: "payroll#export"
       end
 
       namespace :admin do

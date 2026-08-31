@@ -10,11 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_29_013729) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
+
+  create_table "absence_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "name", null: false
+    t.string "abbreviation", null: false
+    t.boolean "paid", default: false, null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "abbreviation"], name: "index_absence_types_on_company_id_and_abbreviation", unique: true
+    t.index ["company_id"], name: "index_absence_types_on_company_id"
+  end
 
   create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name", null: false
@@ -165,6 +178,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
     t.string "slug"
     t.string "primary_color"
     t.string "mobile_auth_key", null: false
+    t.integer "working_days", default: [1, 2, 3, 4, 5], null: false, array: true
     t.index ["mobile_auth_key"], name: "index_companies_on_mobile_auth_key", unique: true
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
     t.index ["slug"], name: "index_companies_on_slug", unique: true
@@ -235,6 +249,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
     t.index ["company_id"], name: "index_contracts_on_company_id"
     t.index ["contract_type_id"], name: "index_contracts_on_contract_type_id"
     t.index ["created_by_id"], name: "index_contracts_on_created_by_id"
+  end
+
+  create_table "leave_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.uuid "staff_member_id", null: false
+    t.uuid "recorded_by_id"
+    t.date "starts_on", null: false
+    t.date "ends_on", null: false
+    t.decimal "days_count", precision: 5, scale: 1, default: "0.0", null: false
+    t.integer "status", default: 1, null: false
+    t.string "reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "absence_type_id", null: false
+    t.index ["absence_type_id"], name: "index_leave_requests_on_absence_type_id"
+    t.index ["company_id"], name: "index_leave_requests_on_company_id"
+    t.index ["recorded_by_id"], name: "index_leave_requests_on_recorded_by_id"
+    t.index ["staff_member_id", "starts_on"], name: "index_leave_requests_on_staff_member_id_and_starts_on"
+    t.index ["staff_member_id"], name: "index_leave_requests_on_staff_member_id"
   end
 
   create_table "library_documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -393,6 +426,53 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  create_table "work_contract_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.string "name", null: false
+    t.string "abbreviation", null: false
+    t.boolean "fixed_term", default: false, null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "abbreviation"], name: "index_work_contract_types_on_company_id_and_abbreviation", unique: true
+    t.index ["company_id"], name: "index_work_contract_types_on_company_id"
+  end
+
+  create_table "work_contracts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.uuid "staff_member_id", null: false
+    t.uuid "work_contract_type_id", null: false
+    t.string "reference"
+    t.string "job_title"
+    t.date "starts_on", null: false
+    t.date "ends_on"
+    t.date "trial_period_end"
+    t.decimal "weekly_hours", precision: 6, scale: 2
+    t.decimal "gross_monthly_salary", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "hourly_rate", precision: 10, scale: 3
+    t.string "currency", default: "TND", null: false
+    t.integer "payment_method", default: 0, null: false
+    t.string "bank_name"
+    t.string "bank_iban"
+    t.string "cnss_number"
+    t.date "cnss_affiliated_on"
+    t.jsonb "allowances", default: [], null: false
+    t.decimal "paid_leave_days_per_year", precision: 5, scale: 1, default: "30.0", null: false
+    t.integer "notice_period_days"
+    t.date "terminated_on"
+    t.string "termination_reason"
+    t.integer "status", default: 0, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_work_contracts_on_company_id"
+    t.index ["staff_member_id", "status"], name: "index_work_contracts_on_staff_member_id_and_status"
+    t.index ["staff_member_id"], name: "index_work_contracts_on_staff_member_id"
+    t.index ["work_contract_type_id"], name: "index_work_contracts_on_work_contract_type_id"
+  end
+
+  add_foreign_key "absence_types", "companies"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activities", "locations"
@@ -418,6 +498,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
   add_foreign_key "contracts", "companies"
   add_foreign_key "contracts", "contract_types"
   add_foreign_key "contracts", "users", column: "created_by_id"
+  add_foreign_key "leave_requests", "absence_types"
+  add_foreign_key "leave_requests", "companies"
+  add_foreign_key "leave_requests", "staff_members"
+  add_foreign_key "leave_requests", "users", column: "recorded_by_id"
   add_foreign_key "library_documents", "companies"
   add_foreign_key "library_documents", "library_folders", column: "folder_id"
   add_foreign_key "library_documents", "users", column: "created_by_id"
@@ -443,4 +527,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_24_180000) do
   add_foreign_key "staff_members", "companies"
   add_foreign_key "staff_members", "users"
   add_foreign_key "subscriptions", "companies"
+  add_foreign_key "work_contract_types", "companies"
+  add_foreign_key "work_contracts", "companies"
+  add_foreign_key "work_contracts", "staff_members"
+  add_foreign_key "work_contracts", "work_contract_types"
 end

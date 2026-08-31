@@ -144,6 +144,90 @@ sarah_staff = StaffMember.find_or_create_by!(user: sarah_user) do |s|
 end
 StaffMemberLocation.find_or_create_by!(staff_member: sarah_staff, location: sousse)
 
+puts "Seeding RH — work contract types + employment contracts + leave..."
+
+WorkContractType.seed_defaults_for(company)
+AbsenceType.seed_defaults_for(company)
+
+cdi = company.work_contract_types.find_by!(abbreviation: "CDI")
+sivp = company.work_contract_types.find_by!(abbreviation: "SIVP")
+cp_absence = company.absence_types.find_by!(abbreviation: "CP")
+sick_absence = company.absence_types.find_by!(abbreviation: "MAL")
+
+WorkContract.find_or_create_by!(staff_member: manager_staff) do |wc|
+  wc.company = company
+  wc.work_contract_type = cdi
+  wc.reference = "CT-2024-001"
+  wc.job_title = "Manager de salle"
+  wc.starts_on = Date.new(2024, 1, 15)
+  wc.trial_period_end = Date.new(2024, 4, 15)
+  wc.weekly_hours = 48
+  wc.gross_monthly_salary = 1800
+  wc.currency = "TND"
+  wc.payment_method = :bank_transfer
+  wc.bank_name = "BIAT"
+  wc.bank_iban = "TN59 1000 6035 1234 5678 9012"
+  wc.cnss_number = "12345678-01"
+  wc.cnss_affiliated_on = Date.new(2024, 1, 15)
+  wc.allowances = [ { "label" => "Prime de transport", "amount" => 80.0 }, { "label" => "Prime de responsabilité", "amount" => 150.0 } ]
+  wc.paid_leave_days_per_year = 30
+  wc.notice_period_days = 30
+  wc.status = :active
+end
+
+WorkContract.find_or_create_by!(staff_member: receptionist_staff) do |wc|
+  wc.company = company
+  wc.work_contract_type = cdi
+  wc.reference = "CT-2024-002"
+  wc.job_title = "Réceptionniste"
+  wc.starts_on = Date.new(2024, 6, 1)
+  wc.trial_period_end = Date.new(2024, 9, 1)
+  wc.weekly_hours = 40
+  wc.gross_monthly_salary = 1100
+  wc.currency = "TND"
+  wc.payment_method = :bank_transfer
+  wc.cnss_number = "23456789-01"
+  wc.allowances = [ { "label" => "Prime de transport", "amount" => 60.0 } ]
+  wc.paid_leave_days_per_year = 24
+  wc.status = :active
+end
+
+WorkContract.find_or_create_by!(staff_member: sarah_staff) do |wc|
+  wc.company = company
+  wc.work_contract_type = sivp
+  wc.reference = "CT-2025-003"
+  wc.job_title = "Coach — Pilates & Yoga"
+  wc.starts_on = Date.new(2025, 3, 1)
+  wc.ends_on = Date.new(2026, 3, 1)
+  wc.weekly_hours = 30
+  wc.gross_monthly_salary = 900
+  wc.hourly_rate = 18
+  wc.currency = "TND"
+  wc.payment_method = :cash
+  wc.paid_leave_days_per_year = 18
+  wc.status = :active
+end
+
+LeaveRequest.find_or_create_by!(staff_member: manager_staff, starts_on: Date.new(Date.current.year, 8, 4)) do |lr|
+  lr.company = company
+  lr.recorded_by = owner
+  lr.absence_type = cp_absence
+  lr.ends_on = Date.new(Date.current.year, 8, 8)
+  lr.days_count = 5
+  lr.status = :approved
+  lr.reason = "Congé annuel"
+end
+
+LeaveRequest.find_or_create_by!(staff_member: receptionist_staff, starts_on: Date.new(Date.current.year, 5, 12)) do |lr|
+  lr.company = company
+  lr.recorded_by = owner
+  lr.absence_type = sick_absence
+  lr.ends_on = Date.new(Date.current.year, 5, 13)
+  lr.days_count = 2
+  lr.status = :approved
+  lr.reason = "Arrêt maladie"
+end
+
 puts "Seeding sessions + recurring schedule..."
 
 def next_occurrence(days_ahead:, hour:, minute: 0)
@@ -167,15 +251,26 @@ sessions_data = [
 
 sessions_data.each do |data|
   starts_at = next_occurrence(days_ahead: data[:days_ahead], hour: data[:hour], minute: data[:minute] || 0)
+  ends_at = starts_at + data[:activity].duration.minutes
 
-  Session.find_or_create_by!(
-    activity: data[:activity], location: sousse, coach: data[:coach], starts_at: starts_at
-  ) do |s|
-    s.ends_at = starts_at + data[:activity].duration.minutes
-    s.capacity = data[:activity].capacity
-    s.price = data[:price] || 0
-    s.status = :scheduled
+  # This exact session already seeded — nothing to do.
+  next if Session.exists?(activity: data[:activity], location: sousse, coach: data[:coach], starts_at: starts_at)
+
+  # A coach can't be in two places at once, and the recurring schedule below
+  # may already own this slot (or an adjacent one). Skip rather than crash on
+  # the no_overlapping_coach_sessions exclusion constraint — seed data only
+  # needs a plausible calendar, not every listed row.
+  if data[:coach] &&
+     Session.where(coach: data[:coach], status: :scheduled)
+            .where("tsrange(starts_at, ends_at) && tsrange(?, ?)", starts_at, ends_at).exists?
+    next
   end
+
+  Session.create!(
+    activity: data[:activity], location: sousse, coach: data[:coach],
+    starts_at: starts_at, ends_at: ends_at,
+    capacity: data[:activity].capacity, price: data[:price] || 0, status: :scheduled
+  )
 end
 
 pilates_recurring = RecurringSchedule.find_or_create_by!(
@@ -370,6 +465,9 @@ Location.find_or_create_by!(company: second_company) do |l|
   l.city = "Monastir"
   l.timezone = "Africa/Tunis"
 end
+
+WorkContractType.seed_defaults_for(second_company)
+AbsenceType.seed_defaults_for(second_company)
 
 puts "Seed complete."
 puts "Owner login:        owner@fitora.test / password123"

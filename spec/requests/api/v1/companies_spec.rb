@@ -58,6 +58,32 @@ RSpec.describe "Api::V1::Companies", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
+    it "defaults working_days to Monday–Friday" do
+      get "/api/v1/company", headers: auth_headers(owner)
+
+      expect(response.parsed_body["company"]["working_days"]).to eq([ 1, 2, 3, 4, 5 ])
+    end
+
+    it "updates working_days (a Saturday-opening gym)" do
+      patch "/api/v1/company", params: { company: { working_days: [ 6, 1, 2, 3, 4 ] } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["company"]["working_days"]).to eq([ 1, 2, 3, 4, 6 ])
+      expect(company.reload.working_days).to eq([ 1, 2, 3, 4, 6 ])
+    end
+
+    it "rejects an empty working_days list" do
+      patch "/api/v1/company", params: { company: { working_days: [ "" ] } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "rejects an out-of-range weekday" do
+      patch "/api/v1/company", params: { company: { working_days: [ 1, 2, 7 ] } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
     it "forbids staff from changing branding" do
       staff = create(:staff_member, company: company, role: :manager)
 
