@@ -11,6 +11,10 @@ module Api
         scope = scope.where(status: params[:status]) if params[:status].present?
         scope = scope.where(payment_method: params[:payment_method]) if params[:payment_method].present?
         scope = scope.where("created_at >= ?", Date.parse(params[:date]).beginning_of_day) if params[:date].present?
+        if params[:q].present?
+          t = "%#{params[:q].strip}%"
+          scope = scope.joins(:client).where("clients.first_name ILIKE :t OR clients.last_name ILIKE :t", t: t)
+        end
         scope = scope.recent
 
         if params[:format] == "csv"

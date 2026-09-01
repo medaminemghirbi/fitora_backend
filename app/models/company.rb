@@ -41,6 +41,18 @@ class Company < ApplicationRecord
                     format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/, message: "must contain only lowercase letters, numbers, and hyphens" }
   validates :primary_color, format: { with: /\A#[0-9a-fA-F]{6}\z/, message: "must be a hex color like #4f46e5" }, allow_nil: true
 
+  # Admin company search — name / city, plus the owner's name and email.
+  scope :search, ->(term) {
+    next all if term.blank?
+
+    t = "%#{term.strip}%"
+    left_joins(:owner).where(
+      "companies.name ILIKE :t OR companies.city ILIKE :t OR " \
+      "users.first_name ILIKE :t OR users.last_name ILIKE :t OR users.email ILIKE :t",
+      t: t
+    ).distinct
+  }
+
   # Pairing secret for the mobile app (QR code + plain text, shown to the
   # owner in Settings). The owner can only regenerate it (a fresh random
   # value); only a Fitora admin can set it to a specific value by hand

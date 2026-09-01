@@ -67,6 +67,10 @@ module Api
       def filtered_scope
         scope = current_company.library_documents
         scope = scope.where(folder_id: params[:folder_id]) if params[:folder_id].present?
+        if params[:q].present?
+          t = "%#{params[:q].strip}%"
+          scope = scope.where("title ILIKE :t OR reference_number ILIKE :t", t: t)
+        end
 
         case params[:status]
         when "active" then scope.active

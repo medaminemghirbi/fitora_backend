@@ -10,6 +10,12 @@ module Api
       def index
         scope = org_scope.order(created_at: :desc)
 
+        if params[:q].present?
+          t = "%#{params[:q].strip}%"
+          scope = scope.joins(:client).joins(session: :activity)
+            .where("clients.first_name ILIKE :t OR clients.last_name ILIKE :t OR activities.name ILIKE :t", t: t)
+        end
+
         if params[:format] == "csv"
           send_data bookings_csv(scope), filename: "bookings-#{Date.current}.csv"
         else

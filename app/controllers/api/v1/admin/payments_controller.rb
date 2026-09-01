@@ -10,6 +10,11 @@ module Api
           scope = scope.where(company_id: params[:company_id]) if params[:company_id].present?
           scope = scope.where(status: params[:status]) if params[:status].present?
           scope = scope.where("payments.created_at >= ?", Date.parse(params[:date]).beginning_of_day) if params[:date].present?
+          if params[:q].present?
+            t = "%#{params[:q].strip}%"
+            scope = scope.joins(:client).joins(:company)
+              .where("clients.first_name ILIKE :t OR clients.last_name ILIKE :t OR companies.name ILIKE :t", t: t)
+          end
           scope = scope.order(created_at: :desc)
 
           render json: {

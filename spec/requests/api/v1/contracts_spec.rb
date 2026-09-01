@@ -30,6 +30,21 @@ RSpec.describe "Api::V1::Contracts", type: :request do
       ids = response.parsed_body["contracts"].map { |c| c["id"] }
       expect(ids).to eq([ premium_contract.id ])
     end
+
+    it "filters by ?q= on client name or plan name" do
+      premium = create(:contract_type, company: company, name: "Premium")
+      basic = create(:contract_type, company: company, name: "Basic")
+      hit = create(:contract, contract_type: premium, company: company,
+                   client: create(:client, company: company, first_name: "Mariem", last_name: "Sassi"))
+      create(:contract, contract_type: basic, company: company,
+             client: create(:client, company: company, first_name: "Karim", last_name: "Ben Youssef"))
+
+      get "/api/v1/contracts", params: { q: "mariem" }, headers: auth_headers(owner)
+      expect(response.parsed_body["contracts"].map { |c| c["id"] }).to eq([ hit.id ])
+
+      get "/api/v1/contracts", params: { q: "premium" }, headers: auth_headers(owner)
+      expect(response.parsed_body["contracts"].map { |c| c["id"] }).to eq([ hit.id ])
+    end
   end
 
   describe "POST /api/v1/contracts" do

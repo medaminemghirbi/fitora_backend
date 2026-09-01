@@ -7,7 +7,7 @@ module Api
 
         # GET /api/v1/admin/companies
         def index
-          companies = Company.includes(:owner, :subscription).order(:name)
+          companies = Company.includes(:owner, :subscription).search(params[:q]).order(:name)
 
           render json: {
             companies: paginate(companies).map { |o| AdminCompanySerializer.new(o).as_json },

@@ -25,6 +25,12 @@ module Api
         end
         contracts = contracts.where(contract_type_id: params[:contract_type_id]) if params[:contract_type_id].present?
 
+        if params[:q].present?
+          t = "%#{params[:q].strip}%"
+          contracts = contracts.joins(:client).joins(:contract_type)
+            .where("clients.first_name ILIKE :t OR clients.last_name ILIKE :t OR contract_types.name ILIKE :t", t: t)
+        end
+
         render json: {
           contracts: paginate(contracts).map { |m| ContractSerializer.new(m).as_json },
           meta: pagination_meta(contracts)

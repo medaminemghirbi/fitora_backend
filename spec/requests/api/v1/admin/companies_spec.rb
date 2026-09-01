@@ -33,6 +33,18 @@ RSpec.describe "Api::V1::Admin::Companies", type: :request do
       ids = response.parsed_body["companies"].map { |o| o["id"] }
       expect(ids).to include(company_a.id, company_b.id)
     end
+
+    it "filters by ?q= on company name, city or owner" do
+      match = create(:company, name: "Zen Yoga Monastir", city: "Monastir")
+      other = create(:company, name: "Iron Gym Tunis", city: "Tunis")
+
+      get "/api/v1/admin/companies", params: { q: "monastir" }, headers: auth_headers(admin)
+
+      ids = response.parsed_body["companies"].map { |o| o["id"] }
+      expect(ids).to include(match.id)
+      expect(ids).not_to include(other.id)
+      expect(response.parsed_body["meta"]["total"]).to eq(1)
+    end
   end
 
   describe "PATCH /api/v1/admin/companies/:id/subscription" do
