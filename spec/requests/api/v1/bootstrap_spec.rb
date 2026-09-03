@@ -15,10 +15,11 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     expect(body["branding"]["name"]).to eq(company.name)
     expect(body["role"]["key"]).to eq("owner")
     expect(body["permissions"]).to match_array(ModuleRegistry.permissions_for(company.enabled_module_keys))
-    expect(body["modules"]).to match_array(%w[core fitness])
+    expect(body["modules"]).to match_array(%w[core fitness hr library])
     expect(body["nav_labels"]).to eq({})
     expect(body["roles"].map { |r| r["key"] }).to match_array(Role::SYSTEM_KEYS)
     expect(body["subscription"]).to include("status", "locked", "trial_days_remaining")
+    expect(body["notifications"]).to eq("unread_count" => 0)
   end
 
   it "hides the full company profile from staff but still returns branding" do
@@ -29,6 +30,8 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     body = response.parsed_body
     expect(body["company"]).to be_nil
     expect(body["branding"]["name"]).to eq(company.name)
+    # every member's shell reads the tenant language + currency from branding
+    expect(body["branding"]).to include("locale" => company.locale, "currency" => "TND", "currency_symbol" => "DT")
     expect(body["permissions"]).to include("bookings")
   end
 
@@ -46,7 +49,7 @@ RSpec.describe "Api::V1 GET /api/v1/bootstrap", type: :request do
     get "/api/v1/bootstrap", headers: auth_headers(owner)
 
     body = response.parsed_body
-    expect(body["modules"]).to eq(%w[core])
+    expect(body["modules"]).to match_array(%w[core hr library])
     expect(body["permissions"]).not_to include("sessions", "contracts", "bookings")
     expect(body["permissions"]).to include("clients", "payments")
   end

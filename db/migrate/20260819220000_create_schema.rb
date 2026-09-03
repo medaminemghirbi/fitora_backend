@@ -16,7 +16,7 @@ class CreateSchema < ActiveRecord::Migration[8.0]
       t.index :email, unique: true
     end
 
-    # The gym/studio business itself. Its access status with Fitora lives
+    # The gym/studio business itself. Its access status with Gerily lives
     # separately on Subscription, below — a Company having no Subscription
     # row is what "still on the free trial" means.
     create_table :companies, id: :uuid do |t|
@@ -85,7 +85,7 @@ class CreateSchema < ActiveRecord::Migration[8.0]
       t.index [ :coach_id, :location_id ], unique: true
     end
 
-    # A company's access status with Fitora — no plans, no tiers, no limits.
+    # A company's access status with Gerily — no plans, no tiers, no limits.
     # expires_at doubles as the free-trial deadline; once it passes, only a
     # platform admin manually setting a new expires_at/status unlocks the
     # account again (see Subscription#locked? / BaseController#enforce_trial_lock!).

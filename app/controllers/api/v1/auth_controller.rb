@@ -3,7 +3,7 @@ module Api
     class AuthController < ApplicationController
       before_action :authenticate_request!, only: [ :me, :logout, :permissions ]
 
-      # POST /api/v1/auth/register — a gym signing up for Fitora. Every other
+      # POST /api/v1/auth/register — a gym signing up for Gerily. Every other
       # account (manager/receptionist/coach) is created by the owner via
       # StaffController, never self-registered.
       def register

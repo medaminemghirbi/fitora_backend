@@ -42,6 +42,10 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # Background jobs run on Sidekiq (see config/initializers/sidekiq.rb and
+    # config/sidekiq_cron.yml). The default :async adapter is not persistent.
+    config.active_job.queue_adapter = :sidekiq
+
     # Every table in this app uses a uuid primary key — Active Storage's own
     # tables (and their record_id/blob_id foreign keys) need to match, or
     # attaching a file to any model here fails.

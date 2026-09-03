@@ -1,8 +1,8 @@
 # Bulk-inserts fake clients into an owner's company to load-test the lists.
 #
-#   bin/rails seed:fake_clients                      # 10 000 into owner@fitora.test's company
+#   bin/rails seed:fake_clients                      # 10 000 into owner@gerily.test's company
 #   COUNT=50000 bin/rails seed:fake_clients
-#   EMAIL=owner2@fitora.test bin/rails seed:fake_clients
+#   EMAIL=owner2@gerily.test bin/rails seed:fake_clients
 #   bin/rails seed:fake_clients_clear                # remove them again
 #
 # Fake rows carry a "[seed]" note so they can be found and cleared later.
@@ -25,7 +25,7 @@ namespace :seed do
 
   task fake_clients: :environment do
     count = Integer(ENV.fetch("COUNT", 10_000))
-    email = ENV.fetch("EMAIL", "owner@fitora.test")
+    email = ENV.fetch("EMAIL", "owner@gerily.test")
 
     owner = User.find_by!(email: email)
     company = owner.company or abort("#{email} has no company")
@@ -68,7 +68,7 @@ namespace :seed do
   end
 
   task fake_clients_clear: :environment do
-    email = ENV.fetch("EMAIL", "owner@fitora.test")
+    email = ENV.fetch("EMAIL", "owner@gerily.test")
     company = User.find_by!(email: email).company
     deleted = company.clients.where("notes LIKE '[seed]%'").delete_all
     puts "Removed #{deleted} seeded clients from #{company.name}."

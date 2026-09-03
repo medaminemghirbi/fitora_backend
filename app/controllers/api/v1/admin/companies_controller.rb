@@ -3,7 +3,7 @@ module Api
     module Admin
       class CompaniesController < BaseController
         before_action :require_admin!
-        before_action :set_company, only: [ :show, :update_subscription, :update_mobile_key, :impersonate ]
+        before_action :set_company, only: [ :show, :update_subscription, :update_modules, :update_settings, :update_mobile_key, :impersonate ]
 
         # GET /api/v1/admin/companies
         def index
@@ -17,7 +17,11 @@ module Api
 
         # GET /api/v1/admin/companies/:id
         def show
-          render json: { company: AdminCompanySerializer.new(@company).as_json }
+          render json: {
+            company: AdminCompanySerializer.new(@company).as_json,
+            currency_options: CurrencyCatalog.options,
+            locale_options: Company::LOCALES
+          }
         end
 
         # PATCH /api/v1/admin/companies/:id/subscription — direct admin
@@ -42,6 +46,41 @@ module Api
             render json: { company: AdminCompanySerializer.new(@company.reload).as_json }
           else
             render json: { error: subscription.errors.full_messages.first, errors: subscription.errors.full_messages }, status: :unprocessable_entity
+          end
+        end
+
+        # PATCH /api/v1/admin/companies/:id/modules — enable/disable optional
+        # capability modules for a company. { modules: { "fitness": false } }.
+        # `core` and always-on modules are ignored.
+        def update_modules
+          requested = params.require(:modules).to_unsafe_h
+          requested.each do |key, enabled|
+            next unless ModuleRegistry::OPTIONAL_KEYS.include?(key.to_s)
+
+            record = @company.company_modules.find_or_initialize_by(key: key.to_s)
+            record.update!(enabled: ActiveModel::Type::Boolean.new.cast(enabled))
+          end
+
+          AuditLogs::Record.call(
+            company: @company, user: current_user, action: "admin.modules_updated",
+            auditable: @company, metadata: { modules: @company.reload.enabled_module_keys }
+          )
+          render json: { company: AdminCompanySerializer.new(@company).as_json }
+        end
+
+        # PATCH /api/v1/admin/companies/:id/settings — tenant-wide display
+        # settings a Gerily admin controls on the company's behalf: the app
+        # language and the billing/display currency. { company: { currency:,
+        # locale: } }.
+        def update_settings
+          if @company.update(company_settings_params)
+            AuditLogs::Record.call(
+              company: @company, user: current_user, action: "admin.settings_updated",
+              auditable: @company, metadata: { currency: @company.currency, locale: @company.locale }
+            )
+            render json: { company: AdminCompanySerializer.new(@company).as_json }
+          else
+            render json: { error: @company.errors.full_messages.first, errors: @company.errors.full_messages }, status: :unprocessable_entity
           end
         end
 
@@ -83,6 +122,10 @@ module Api
 
         def set_company
           @company = Company.find(params[:id])
+        end
+
+        def company_settings_params
+          params.require(:company).permit(:currency, :locale)
         end
       end
     end

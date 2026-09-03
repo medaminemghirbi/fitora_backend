@@ -12,7 +12,12 @@ class CompanyBrandingSerializer
     {
       name: company.name,
       primary_color: company.primary_color,
-      logo_url: logo_url
+      logo_url: logo_url,
+      # Tenant-wide display settings every member's shell needs: the app
+      # language and the currency symbol shown next to amounts.
+      locale: company.locale,
+      currency: company.currency,
+      currency_symbol: company.currency_symbol
     }
   end
 

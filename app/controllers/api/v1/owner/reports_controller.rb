@@ -12,7 +12,7 @@ module Api
           package = Reports::CompanyWorkbook.call(company: current_company, period: period)
 
           send_data package.to_stream.read,
-                     filename: "fitora-rapport-#{period.slug}.xlsx",
+                     filename: "gerily-rapport-#{period.slug}.xlsx",
                      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                      disposition: "attachment"
         rescue Reports::Period::InvalidPeriod => e

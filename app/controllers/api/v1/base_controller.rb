@@ -27,7 +27,7 @@ module Api
 
         render json: {
           error: "trial_expired",
-          message: current_user.owner? ? "Your free trial has ended. Contact Fitora to keep using your account." : "This company's account is locked. Contact your gym owner."
+          message: current_user.owner? ? "Your free trial has ended. Contact Gerily to keep using your account." : "This company's account is locked. Contact your gym owner."
         }, status: :payment_required
       end
 
@@ -35,7 +35,7 @@ module Api
       # it from the authenticated user: owners have one via Company,
       # staff (managers/coaches/receptionists/company-admins) have one via
       # StaffMember. Never confuse either with User#role == "admin", the
-      # Fitora platform operator handled entirely by Api::V1::Admin::*.
+      # Gerily platform operator handled entirely by Api::V1::Admin::*.
       def current_company
         @current_company ||= current_user.company || current_staff_member&.company
       end

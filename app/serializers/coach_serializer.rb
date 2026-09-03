@@ -14,6 +14,7 @@ class CoachSerializer
       phone: coach.phone,
       bio: coach.bio,
       photo_url: coach.photo_url,
+      birthdate: coach.birthdate,
       active: coach.active,
       location_ids: coach.location_ids,
       has_login: coach.staff_member.present?,

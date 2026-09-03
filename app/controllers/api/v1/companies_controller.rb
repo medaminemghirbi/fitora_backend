@@ -67,7 +67,10 @@ module Api
         require_company!
         return if performed?
 
-        if current_company.update(company_params)
+        # currency + locale are tenant-wide settings a Gerily admin manages
+        # (Api::V1::Admin::CompaniesController#update_settings); the owner
+        # only picks a currency once, at signup.
+        if current_company.update(company_params.except(:currency))
           render json: { company: CompanySerializer.new(current_company).as_json }
         else
           render json: { error: current_company.errors.full_messages.first, errors: current_company.errors.full_messages }, status: :unprocessable_entity
@@ -89,24 +92,6 @@ module Api
         IndustryPreset.apply(current_company, params[:industry])
         AuditLogs::Record.call(company: current_company, user: current_user, action: "industry.changed", auditable: current_company, metadata: { industry: params[:industry] })
         render json: { company: CompanySerializer.new(current_company.reload).as_json }
-      end
-
-      # PATCH /api/v1/company/modules — enable/disable optional capability
-      # modules. { modules: { "fitness": false } }. `core` can't be turned off.
-      def update_modules
-        require_company!
-        return if performed?
-
-        requested = params.require(:modules).to_unsafe_h
-        requested.each do |key, enabled|
-          next unless ModuleRegistry::OPTIONAL_KEYS.include?(key.to_s)
-
-          record = current_company.company_modules.find_or_initialize_by(key: key.to_s)
-          record.update!(enabled: ActiveModel::Type::Boolean.new.cast(enabled))
-        end
-
-        AuditLogs::Record.call(company: current_company, user: current_user, action: "modules.updated", auditable: current_company, metadata: { modules: current_company.reload.enabled_module_keys })
-        render json: { modules: current_company.enabled_module_keys }
       end
 
       # POST /api/v1/company/regenerate_mobile_key — the owner can only

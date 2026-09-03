@@ -11,6 +11,7 @@ class StaffMemberSerializer
       role_name: staff_member.assigned_role&.name,
       permissions: staff_member.permission_keys,
       active: staff_member.active,
+      birthdate: staff_member.birthdate,
       user: {
         id: staff_member.user.id,
         full_name: staff_member.user.full_name,

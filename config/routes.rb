@@ -1,5 +1,12 @@
+require "sidekiq/web"
+require "sidekiq/cron/web"
+
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
+
+  # The Sidekiq dashboard. Dev-only here — in production it must sit behind
+  # real authentication (basic auth / an admin session) before being exposed.
+  mount Sidekiq::Web => "/sidekiq" if Rails.env.development?
 
   namespace :api do
     namespace :v1 do
@@ -10,10 +17,17 @@ Rails.application.routes.draw do
       get "me/permissions", to: "auth#permissions"
       get "bootstrap", to: "bootstrap#show"
 
+      resources :notifications, only: [ :index, :show ] do
+        member { patch :read }
+        collection do
+          post :read_all
+          get :unread_count
+        end
+      end
+
       resource :company, only: [ :show, :update, :create ] do
         post :regenerate_mobile_key
         get :mobile_key_qr
-        patch :modules, to: "companies#update_modules"
         patch :industry, to: "companies#update_industry"
       end
       get "branding", to: "branding#show"
@@ -91,11 +105,13 @@ Rails.application.routes.draw do
         resources :companies, only: [ :index, :show ] do
           member do
             patch :subscription, to: "companies#update_subscription"
+            patch :modules, to: "companies#update_modules"
+            patch :settings, to: "companies#update_settings"
             patch :mobile_key, to: "companies#update_mobile_key"
             post :impersonate, to: "companies#impersonate"
           end
         end
-        resources :payments, only: [ :index ]
+        resources :modules, only: [ :index, :update ], param: :key
       end
     end
   end

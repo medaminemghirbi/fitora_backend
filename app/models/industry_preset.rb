@@ -14,61 +14,61 @@ module IndustryPreset
   CATALOG = {
     "fitness" => {
       label: "Salle de sport / fitness",
-      modules: %w[core fitness],
+      modules: %w[core fitness hr library],
       role_labels: {},
       nav_labels: {}
     },
     "medical" => {
       label: "Cabinet médical",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Responsable", "receptionist" => "Secrétaire", "coach" => "Praticien" },
       nav_labels: { "nav.clients" => "Patients" }
     },
     "dental" => {
       label: "Cabinet dentaire",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Responsable", "receptionist" => "Secrétaire", "coach" => "Praticien" },
       nav_labels: { "nav.clients" => "Patients" }
     },
     "legal" => {
       label: "Cabinet juridique",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Associé", "receptionist" => "Assistant·e", "coach" => "Collaborateur" },
       nav_labels: {}
     },
     "beauty" => {
       label: "Institut de beauté",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Gérant·e", "receptionist" => "Accueil", "coach" => "Praticien·ne" },
       nav_labels: {}
     },
     "veterinary" => {
       label: "Clinique vétérinaire",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Responsable", "receptionist" => "Secrétaire", "coach" => "Vétérinaire" },
       nav_labels: {}
     },
     "training" => {
       label: "Centre de formation",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Responsable", "receptionist" => "Secrétariat", "coach" => "Formateur" },
       nav_labels: { "nav.clients" => "Stagiaires" }
     },
     "realestate" => {
       label: "Agence immobilière",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Directeur d'agence", "receptionist" => "Assistant·e", "coach" => "Négociateur" },
       nav_labels: { "nav.clients" => "Contacts" }
     },
     "maintenance" => {
       label: "Maintenance / SAV",
-      modules: %w[core appointments],
+      modules: %w[core appointments hr library],
       role_labels: { "manager" => "Responsable", "receptionist" => "Planification", "coach" => "Technicien" },
       nav_labels: {}
     },
     "generic" => {
       label: "Autre / générique",
-      modules: %w[core],
+      modules: %w[core hr library],
       role_labels: {},
       nav_labels: {}
     }

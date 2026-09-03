@@ -7,7 +7,7 @@ RSpec.describe "Api::V1::Staff", type: :request do
   describe "authorization" do
     it "lets the owner create a staff member" do
       post "/api/v1/staff",
-           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@fitora.test", password: "password123", role: "manager" } },
+           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@gerily.test", password: "password123", role: "manager" } },
            headers: auth_headers(owner)
 
       expect(response).to have_http_status(:created)
@@ -18,7 +18,7 @@ RSpec.describe "Api::V1::Staff", type: :request do
       create_list(:staff_member, 5, company: company)
 
       post "/api/v1/staff",
-           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@fitora.test", password: "password123", role: "manager" } },
+           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@gerily.test", password: "password123", role: "manager" } },
            headers: auth_headers(owner)
 
       expect(response).to have_http_status(:created)
@@ -28,7 +28,7 @@ RSpec.describe "Api::V1::Staff", type: :request do
       manager = create(:staff_member, company: company, role: :manager)
 
       post "/api/v1/staff",
-           params: { staff_member: { first_name: "New", last_name: "Hire", email: "hire2@fitora.test", password: "password123", role: "coach" } },
+           params: { staff_member: { first_name: "New", last_name: "Hire", email: "hire2@gerily.test", password: "password123", role: "coach" } },
            headers: auth_headers(manager.user)
 
       expect(response).to have_http_status(:forbidden)
@@ -38,13 +38,13 @@ RSpec.describe "Api::V1::Staff", type: :request do
       coach_staff = create(:staff_member, company: company, role: :coach)
 
       post "/api/v1/staff",
-           params: { staff_member: { first_name: "New", last_name: "Hire", email: "hire3@fitora.test", password: "password123", role: "coach" } },
+           params: { staff_member: { first_name: "New", last_name: "Hire", email: "hire3@gerily.test", password: "password123", role: "coach" } },
            headers: auth_headers(coach_staff.user)
 
       expect(response).to have_http_status(:forbidden)
     end
 
-    it "the Fitora platform admin (User#role == admin) has no special access to an company's staff endpoint" do
+    it "the Gerily platform admin (User#role == admin) has no special access to an company's staff endpoint" do
       platform_admin = create(:user, :admin)
 
       get "/api/v1/staff", headers: auth_headers(platform_admin)

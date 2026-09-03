@@ -33,7 +33,8 @@ module Api
           staff_member = current_company.staff_members.create!(
             user: user,
             role: staff_params[:role],
-            coach_id: staff_params[:coach_id]
+            coach_id: staff_params[:coach_id],
+            birthdate: staff_params[:birthdate]
           )
           staff_member.staff_member_locations.create!(location: current_company.location)
         end
@@ -83,7 +84,7 @@ module Api
       end
 
       def staff_params
-        params.require(:staff_member).permit(:role, :active, :coach_id)
+        params.require(:staff_member).permit(:role, :active, :coach_id, :birthdate)
       end
     end
   end

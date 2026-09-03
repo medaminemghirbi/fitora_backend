@@ -8,7 +8,7 @@ RSpec.describe IndustryPreset do
       described_class.apply(company, "medical")
       company.reload
 
-      expect(company.enabled_module_keys).to match_array(%w[core appointments])
+      expect(company.enabled_module_keys).to match_array(%w[core appointments hr library])
       expect(company.appointment_types.count).to be_positive
       expect(company.roles.find_by(key: "coach").permissions).to include("appointments")
       expect(company.roles.find_by(key: "coach").name).to eq("Praticien")
@@ -22,7 +22,7 @@ RSpec.describe IndustryPreset do
       described_class.apply(company, "fitness")
       company.reload
 
-      expect(company.enabled_module_keys).to match_array(%w[core fitness])
+      expect(company.enabled_module_keys).to match_array(%w[core fitness hr library])
       expect(company.industry).to eq("fitness")
       # re-applying does not un-rename a role the new preset doesn't mention
       expect(company.roles.find_by(key: "coach").name).to eq("Praticien")
@@ -37,7 +37,7 @@ RSpec.describe IndustryPreset do
     it "falls back to the generic preset for an unknown key" do
       described_class.apply(company, "spaceship")
       company.reload
-      expect(company.enabled_module_keys).to eq(%w[core])
+      expect(company.enabled_module_keys).to match_array(%w[core hr library])
       expect(company.industry).to eq("generic")
     end
   end

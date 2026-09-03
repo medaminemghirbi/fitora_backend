@@ -14,4 +14,9 @@ class Coach < ApplicationRecord
   def full_name
     "#{first_name} #{last_name}"
   end
+
+  # True on the person's birthday (day + month), any year.
+  def birthday_today?(on: Date.current)
+    birthdate.present? && birthdate.strftime("%m-%d") == on.strftime("%m-%d")
+  end
 end

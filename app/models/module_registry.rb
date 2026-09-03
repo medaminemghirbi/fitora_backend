@@ -13,21 +13,38 @@ module ModuleRegistry
   CATALOG = {
     "core" => {
       name: "Core",
-      description: "Clients, team, documents, payments, reporting — the platform baseline.",
-      permissions: %w[clients coaches payments reports company_library locations],
-      always_on: true
+      description: "Clients, paiements, tableau de bord et réglages — la base de la plateforme.",
+      permissions: %w[clients payments reports locations],
+      always_on: true,
+      default_price_cents: 0
     },
     "fitness" => {
       name: "Fitness",
-      description: "Activities, class scheduling, bookings, attendance and memberships.",
+      description: "Activités, calendrier, réservations, présences et contrats d'entraînement.",
       permissions: %w[activities sessions bookings checkin contracts],
-      always_on: false
+      always_on: false,
+      default_price_cents: 6000
     },
     "appointments" => {
       name: "Rendez-vous",
       description: "Agenda, créneaux et prise de rendez-vous individuels — pour le médical, la beauté, le juridique…",
       permissions: %w[appointments],
-      always_on: false
+      always_on: false,
+      default_price_cents: 4000
+    },
+    "hr" => {
+      name: "RH & paie",
+      description: "Équipe, contrats de travail, types d'absence et pré-fiche de paie.",
+      permissions: %w[coaches],
+      always_on: false,
+      default_price_cents: 2500
+    },
+    "library" => {
+      name: "Bibliothèque d'entreprise",
+      description: "Classement des documents de l'entreprise par dossier (assurances, juridique, RH…).",
+      permissions: %w[company_library],
+      always_on: false,
+      default_price_cents: 1500
     }
     # medical / legal / beauty / … slot in here as they're built. Adding one
     # must not require touching the core.
@@ -36,10 +53,10 @@ module ModuleRegistry
   KEYS = CATALOG.keys.freeze
   OPTIONAL_KEYS = CATALOG.reject { |_, m| m[:always_on] }.keys.freeze
 
-  # Modules enabled for a brand-new company. Fitness is on by default so the
-  # existing product is unchanged; a future onboarding step can let a company
-  # pick a different set.
-  DEFAULT_ENABLED = %w[core fitness].freeze
+  # Modules enabled for a brand-new company. Fitness + HR + library are on by
+  # default so the existing product is unchanged; an admin trims the set per
+  # company from the admin console afterwards.
+  DEFAULT_ENABLED = %w[core fitness hr library].freeze
 
   def self.exists?(key)
     CATALOG.key?(key.to_s)
@@ -47,6 +64,10 @@ module ModuleRegistry
 
   def self.always_on?(key)
     CATALOG.dig(key.to_s, :always_on) || false
+  end
+
+  def self.default_price_cents(key)
+    CATALOG.dig(key.to_s, :default_price_cents) || 0
   end
 
   # Every permission contributed by the given set of enabled module keys.

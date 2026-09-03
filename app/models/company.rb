@@ -1,6 +1,12 @@
 class Company < ApplicationRecord
   MOBILE_AUTH_KEY_LENGTH = 8
 
+  # The company's display language — one setting for the whole tenant, set by
+  # a Gerily admin (Api::V1::Admin::CompaniesController#update_settings). The
+  # frontend applies it from the bootstrap payload; there is no per-user
+  # language switch inside a company's app.
+  LOCALES = %w[fr en ar].freeze
+
   belongs_to :owner, class_name: "User", inverse_of: :company
 
   # White-label branding — logo shown in the owner/coach shells, primary_color
@@ -31,9 +37,12 @@ class Company < ApplicationRecord
   has_many :audit_logs, dependent: :destroy
   has_many :library_folders, dependent: :destroy
   has_many :library_documents, dependent: :destroy
+  has_many :notifications, dependent: :destroy
 
   validates :name, presence: true
-  validates :timezone, :currency, presence: true
+  validates :timezone, presence: true
+  validates :currency, presence: true, inclusion: { in: CurrencyCatalog::CODES }
+  validates :locale, presence: true, inclusion: { in: LOCALES }
   # Date#wday values (0 = Sunday … 6 = Saturday). At least one day, no dupes.
   validates :working_days, presence: true
   validate :working_days_are_valid_weekdays
@@ -55,7 +64,7 @@ class Company < ApplicationRecord
 
   # Pairing secret for the mobile app (QR code + plain text, shown to the
   # owner in Settings). The owner can only regenerate it (a fresh random
-  # value); only a Fitora admin can set it to a specific value by hand
+  # value); only a Gerily admin can set it to a specific value by hand
   # (Api::V1::Admin::CompaniesController#update_mobile_key) — see
   # Api::V1::CompaniesController for why it's excluded from company_params.
   before_validation :assign_mobile_auth_key, on: :create
@@ -76,6 +85,11 @@ class Company < ApplicationRecord
     update!(mobile_auth_key: self.class.generate_mobile_auth_key)
   end
 
+  # The short symbol shown next to amounts across the app (e.g. "DT", "€").
+  def currency_symbol
+    CurrencyCatalog.symbol(currency)
+  end
+
   # Keys of the modules switched on for this company — always includes
   # "core". Drives which permissions exist, which nav appears, and which
   # domain routes are reachable.
@@ -85,6 +99,12 @@ class Company < ApplicationRecord
 
   def module_enabled?(key)
     key.to_s == ModuleRegistry::CORE_KEY || company_modules.enabled.exists?(key: key.to_s)
+  end
+
+  # Sum of the platform prices of this company's enabled optional modules —
+  # what its off-app subscription costs per month.
+  def monthly_total_cents
+    PlatformModulePrice.monthly_total_cents(enabled_module_keys - [ ModuleRegistry::CORE_KEY ])
   end
 
   # True when the company operates on the given date's weekday.

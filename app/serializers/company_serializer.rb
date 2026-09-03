@@ -19,6 +19,8 @@ class CompanySerializer
       longitude: company.longitude,
       timezone: company.timezone,
       currency: company.currency,
+      currency_symbol: company.currency_symbol,
+      locale: company.locale,
       working_days: company.working_days,
       active: company.active,
       slug: company.slug,
@@ -27,6 +29,7 @@ class CompanySerializer
       mobile_auth_key: company.mobile_auth_key,
       nav_labels: company.nav_labels,
       modules: modules,
+      monthly_total_cents: company.monthly_total_cents,
       industry: company.industry,
       industry_options: IndustryPreset.options
     }
@@ -38,13 +41,17 @@ class CompanySerializer
 
   def modules
     enabled = company.enabled_module_keys
+    prices = PlatformModulePrice.catalog.index_by(&:key)
     ModuleRegistry::CATALOG.map do |key, meta|
+      price = prices[key]
       {
         key: key,
         name: meta[:name],
         description: meta[:description],
         optional: !meta[:always_on],
-        enabled: enabled.include?(key)
+        enabled: enabled.include?(key),
+        price_cents: price&.price_cents || 0,
+        currency: price&.currency || "TND"
       }
     end
   end

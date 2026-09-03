@@ -1,7 +1,7 @@
 class User < ApplicationRecord
   has_secure_password
 
-  # A User is always staff: the Fitora-operator ("admin", manages every
+  # A User is always staff: the Gerily-operator ("admin", manages every
   # company's SaaS subscription via /admin) or an in-gym account
   # (owner, or staff — the specific in-gym role lives on StaffMember).
   # Clients are business records the gym creates, never Users — see Client.
@@ -9,6 +9,7 @@ class User < ApplicationRecord
 
   has_one :company, foreign_key: :owner_id, inverse_of: :owner, dependent: :destroy
   has_one :staff_member, dependent: :destroy
+  has_many :notifications, foreign_key: :recipient_id, inverse_of: :recipient, dependent: :destroy
 
   before_validation { self.email = email.to_s.downcase.strip }
 

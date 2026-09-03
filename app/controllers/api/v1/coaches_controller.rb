@@ -67,7 +67,7 @@ module Api
       end
 
       def coach_params
-        params.require(:coach).permit(:first_name, :last_name, :email, :phone, :bio, :photo_url, :active)
+        params.require(:coach).permit(:first_name, :last_name, :email, :phone, :bio, :photo_url, :active, :birthdate)
       end
     end
   end

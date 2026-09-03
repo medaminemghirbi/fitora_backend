@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Bookings::SendReminder do
-  let(:company) { create(:company, name: "Fitora Test Gym") }
+  let(:company) { create(:company, name: "Gerily Test Gym") }
   let(:location) { create(:location, company: company) }
   let(:activity) { create(:activity, location: location, name: "Yoga") }
   let(:session) { create(:session, activity: activity, location: location, starts_at: Time.zone.local(2026, 9, 20, 18, 0)) }
@@ -13,7 +13,7 @@ RSpec.describe Bookings::SendReminder do
 
       expect(Sms::TunisieSmsClient).to receive(:send_message).with(
         mobile: "21620111222",
-        text: a_string_matching(/Ines.*Yoga.*20\/09\/2026.*18:00.*Fitora Test Gym/)
+        text: a_string_matching(/Ines.*Yoga.*20\/09\/2026.*18:00.*Gerily Test Gym/)
       )
 
       result = described_class.call(booking: booking)

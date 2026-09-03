@@ -59,7 +59,7 @@ module Reports
 
     def build_summary_sheet
       package.workbook.add_worksheet(name: "Résumé") do |sheet|
-        sheet.add_row [ "Rapport Fitora — #{company.name}" ], style: title_style
+        sheet.add_row [ "Rapport Gerily — #{company.name}" ], style: title_style
         sheet.add_row [ "Période : #{period.label}" ]
         sheet.add_row [ "Généré le : #{Time.current.strftime('%d/%m/%Y %H:%M')}" ]
         sheet.add_row []

@@ -7,7 +7,7 @@ class Subscription < ApplicationRecord
   validates :company_id, uniqueness: true
 
   # No plans, no tiers — this is just the company's access status with
-  # Fitora, set by hand by a platform admin (Api::V1::Admin::CompaniesController#update_subscription).
+  # Gerily, set by hand by a platform admin (Api::V1::Admin::CompaniesController#update_subscription).
   # expires_at doubles as the free-trial deadline: set to 14 days out at
   # signup (see Api::V1::CompaniesController#create), and cleared to nil
   # the moment an admin manually grants ongoing access — nil means "not on

@@ -1,18 +1,21 @@
-# Fitora seed data — business-management rebuild.
+# Gerily seed data — business-management rebuild.
 #
 # Staff logins (password for all: "password123"):
-#   Owner:        owner@fitora.test
-#   Manager:      manager@fitora.test
-#   Receptionist: receptionist@fitora.test
-#   Coach:        sarah.coach@fitora.test
-#   Platform admin: admin@fitora.test
+#   Owner:        owner@gerily.test
+#   Manager:      manager@gerily.test
+#   Receptionist: receptionist@gerily.test
+#   Coach:        sarah.coach@gerily.test
+#   Platform admin: admin@gerily.test
 #
 # Clients are business records only — they never log in.
 # Every company has exactly one location.
 
+puts "Seeding platform module prices..."
+PlatformModulePrice.catalog # find-or-creates one row per optional module at its registry default
+
 puts "Seeding owner + company..."
 
-owner = User.find_or_create_by!(email: "owner@fitora.test") do |u|
+owner = User.find_or_create_by!(email: "owner@gerily.test") do |u|
   u.first_name = "Yassine"
   u.last_name = "Ben Salah"
   u.password = "password123"
@@ -21,10 +24,10 @@ owner = User.find_or_create_by!(email: "owner@fitora.test") do |u|
 end
 
 company = Company.find_or_create_by!(owner: owner) do |o|
-  o.name = "Fitora Fitness Sousse"
+  o.name = "Gerily Fitness Sousse"
   o.description = "Fitness studio"
   o.phone = "+216 20 123 456"
-  o.email = "contact@fitora-sousse.test"
+  o.email = "contact@gerily-sousse.test"
   o.country = "Tunisia"
   o.city = "Sousse"
   o.address = "12 Avenue Habib Bourguiba"
@@ -43,7 +46,7 @@ IndustryPreset.apply(company, "fitness")
 puts "Seeding the company's one location..."
 
 sousse = Location.find_or_create_by!(company: company) do |l|
-  l.name = "Fitora Sousse"
+  l.name = "Gerily Sousse"
   l.city = "Sousse"
   l.address = "12 Avenue Habib Bourguiba"
   l.phone = "+216 20 123 456"
@@ -94,20 +97,23 @@ end
 puts "Seeding coaches + staff accounts..."
 
 sarah = Coach.find_or_create_by!(company: company, first_name: "Sarah", last_name: "Martin") do |c|
-  c.email = "sarah.martin@fitora.test"
+  c.email = "sarah.martin@gerily.test"
   c.phone = "+216 22 111 222"
   c.bio = "Certified Pilates and Yoga instructor with 8 years of experience."
 end
+# One coach's birthday is today so the birthday notification demo works out of the box.
+sarah.update!(birthdate: Date.new(1992, Date.current.month, Date.current.day))
 CoachLocation.find_or_create_by!(coach: sarah, location: sousse)
 
 amine = Coach.find_or_create_by!(company: company, first_name: "Amine", last_name: "Ben Ali") do |c|
-  c.email = "amine.benali@fitora.test"
+  c.email = "amine.benali@gerily.test"
   c.phone = "+216 22 333 444"
   c.bio = "EMS and strength training specialist."
+  c.birthdate = Date.new(1988, 6, 14)
 end
 CoachLocation.find_or_create_by!(coach: amine, location: sousse)
 
-manager_user = User.find_or_create_by!(email: "manager@fitora.test") do |u|
+manager_user = User.find_or_create_by!(email: "manager@gerily.test") do |u|
   u.first_name = "Khaled"
   u.last_name = "Zaidi"
   u.password = "password123"
@@ -117,10 +123,11 @@ end
 manager_staff = StaffMember.find_or_create_by!(user: manager_user) do |s|
   s.company = company
   s.role = :manager
+  s.birthdate = Date.new(1985, 3, 22)
 end
 StaffMemberLocation.find_or_create_by!(staff_member: manager_staff, location: sousse)
 
-receptionist_user = User.find_or_create_by!(email: "receptionist@fitora.test") do |u|
+receptionist_user = User.find_or_create_by!(email: "receptionist@gerily.test") do |u|
   u.first_name = "Ines"
   u.last_name = "Hammami"
   u.password = "password123"
@@ -133,7 +140,7 @@ receptionist_staff = StaffMember.find_or_create_by!(user: receptionist_user) do 
 end
 StaffMemberLocation.find_or_create_by!(staff_member: receptionist_staff, location: sousse)
 
-sarah_user = User.find_or_create_by!(email: "sarah.coach@fitora.test") do |u|
+sarah_user = User.find_or_create_by!(email: "sarah.coach@gerily.test") do |u|
   u.first_name = "Sarah"
   u.last_name = "Martin"
   u.password = "password123"
@@ -433,15 +440,15 @@ end
 
 puts "Seeding admin account + a second company (for the platform admin panel)..."
 
-User.find_or_create_by!(email: "admin@fitora.test") do |u|
-  u.first_name = "Fitora"
+User.find_or_create_by!(email: "admin@gerily.test") do |u|
+  u.first_name = "Gerily"
   u.last_name = "Admin"
   u.password = "password123"
   u.role = :admin
   u.locale = "fr"
 end
 
-second_owner = User.find_or_create_by!(email: "owner2@fitora.test") do |u|
+second_owner = User.find_or_create_by!(email: "owner2@gerily.test") do |u|
   u.first_name = "Nadia"
   u.last_name = "Cherni"
   u.password = "password123"
@@ -477,7 +484,7 @@ AbsenceType.seed_defaults_for(second_company)
 
 puts "Seeding a third company on the Medical preset (appointments module)..."
 
-third_owner = User.find_or_create_by!(email: "owner3@fitora.test") do |u|
+third_owner = User.find_or_create_by!(email: "owner3@gerily.test") do |u|
   u.first_name = "Nour"
   u.last_name = "Ben Youssef"
   u.password = "password123"
@@ -524,11 +531,53 @@ patients.each_with_index do |patient, i|
   )
 end
 
+puts "Seeding notifications for the owner..."
+
+# A handful of realistic notifications so the header bell + inbox have
+# something to show without running the daily scans.
+if company.library_documents.any?
+  doc = company.library_documents.order(:expires_on).first
+  Notification.find_or_create_by!(company: company, dedup_key: "seed:doc:#{doc.id}") do |n|
+    n.recipient = owner
+    n.kind = "document_expiring"
+    n.subject = doc
+    n.url = "/owner/directories/company-library/#{doc.folder_id}"
+    n.data = { "title" => doc.title, "folder_name" => doc.folder&.name, "expires_on" => (Date.current + 4).iso8601 }
+    n.created_at = 2.hours.ago
+  end
+end
+
+Notification.find_or_create_by!(company: company, dedup_key: "seed:birthday:sarah") do |n|
+  n.recipient = owner
+  n.kind = "employee_birthday"
+  n.subject = sarah
+  n.url = "/owner/team"
+  n.data = { "name" => sarah.full_name }
+  n.created_at = 6.hours.ago
+end
+
+first_contract_period = ContractPeriod.joins(:contract).where(contracts: { company_id: company.id }).first
+if first_contract_period
+  Notification.find_or_create_by!(company: company, dedup_key: "seed:contract:#{first_contract_period.id}") do |n|
+    n.recipient = owner
+    n.kind = "contract_expiring"
+    n.subject = first_contract_period
+    n.url = "/owner/clients/#{first_contract_period.contract.client_id}"
+    n.data = {
+      "client_name" => first_contract_period.contract.client&.full_name,
+      "contract_type" => first_contract_period.contract.contract_type&.name,
+      "expires_at" => (Date.current + 9).iso8601
+    }
+    n.read_at = 1.day.ago
+    n.created_at = 1.day.ago
+  end
+end
+
 puts "Seed complete."
-puts "Owner login:        owner@fitora.test / password123"
-puts "Manager login:      manager@fitora.test / password123"
-puts "Receptionist login: receptionist@fitora.test / password123"
-puts "Coach login:        sarah.coach@fitora.test / password123"
-puts "Platform admin:     admin@fitora.test / password123"
-puts "Second owner:       owner2@fitora.test / password123 (Zen Yoga Monastir)"
-puts "Third owner:        owner3@fitora.test / password123 (Cabinet Médical Nour — preset Médical)"
+puts "Owner login:        owner@gerily.test / password123"
+puts "Manager login:      manager@gerily.test / password123"
+puts "Receptionist login: receptionist@gerily.test / password123"
+puts "Coach login:        sarah.coach@gerily.test / password123"
+puts "Platform admin:     admin@gerily.test / password123"
+puts "Second owner:       owner2@gerily.test / password123 (Zen Yoga Monastir)"
+puts "Third owner:        owner3@gerily.test / password123 (Cabinet Médical Nour — preset Médical)"

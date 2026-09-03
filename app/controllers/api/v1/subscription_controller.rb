@@ -1,6 +1,6 @@
 module Api
   module V1
-    # No plans, no add-ons — a company's access to Fitora is granted and
+    # No plans, no add-ons — a company's access to Gerily is granted and
     # managed entirely by hand by a platform admin
     # (Api::V1::Admin::CompaniesController#update_subscription). This just
     # reports the current status/trial countdown for the owner's own banner

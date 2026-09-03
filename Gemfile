@@ -34,6 +34,13 @@ gem "matrix"
 # so the key itself never leaves the app to a third-party QR API.
 gem "rqrcode"
 
+# Background jobs (expiry scans, notification fan-out) + the ActionCable
+# Redis pub/sub backend for real-time notifications. Redis already runs
+# locally; set REDIS_URL to point elsewhere.
+gem "redis", "~> 5"
+gem "sidekiq", "~> 7"
+gem "sidekiq-cron", "~> 2"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

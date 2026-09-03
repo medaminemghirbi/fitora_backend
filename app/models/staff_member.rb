@@ -49,6 +49,15 @@ class StaffMember < ApplicationRecord
     permission_keys.include?(capability.to_s)
   end
 
+  def full_name
+    user&.full_name
+  end
+
+  # True on the person's birthday (day + month), any year.
+  def birthday_today?(on: Date.current)
+    birthdate.present? && birthdate.strftime("%m-%d") == on.strftime("%m-%d")
+  end
+
   # The resolved permission list for this staff login: the assigned Role's
   # permissions, or — for rows not yet linked to a Role — the legacy
   # capability map for the enum value.

@@ -24,7 +24,7 @@ RSpec.describe "Api::V1::Companies", type: :request do
   describe "POST /api/v1/company — industry preset at signup" do
     let(:fresh_owner) { create(:user, :owner) }
 
-    it "applies the medical preset: core only, Patients label, renamed roles" do
+    it "applies the medical preset: appointments module, Patients label, renamed roles" do
       post "/api/v1/company",
            params: { company: { name: "Cabinet Nour", timezone: "Africa/Tunis", currency: "TND" }, industry: "medical" },
            headers: auth_headers(fresh_owner)
@@ -32,7 +32,7 @@ RSpec.describe "Api::V1::Companies", type: :request do
       expect(response).to have_http_status(:created)
       created = Company.find_by(owner: fresh_owner)
       expect(created.industry).to eq("medical")
-      expect(created.enabled_module_keys).to match_array(%w[core appointments])
+      expect(created.enabled_module_keys).to match_array(%w[core appointments hr library])
       expect(created.nav_labels).to include("nav.clients" => "Patients")
       expect(created.roles.find_by(key: "coach").name).to eq("Praticien")
     end
@@ -64,25 +64,6 @@ RSpec.describe "Api::V1::Companies", type: :request do
     end
   end
 
-  describe "PATCH /api/v1/company/modules" do
-    it "toggles an optional module and ignores core / unknown keys" do
-      patch "/api/v1/company/modules",
-            params: { modules: { fitness: false, core: false, teleport: true } },
-            headers: auth_headers(owner)
-
-      expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["modules"]).to eq(%w[core])
-      expect(company.reload).not_to be_module_enabled("fitness")
-      expect(company).to be_module_enabled("core")
-    end
-
-    it "is owner-only" do
-      staff = create(:staff_member, company: company, role: :manager)
-      patch "/api/v1/company/modules", params: { modules: { fitness: false } }, headers: auth_headers(staff.user)
-      expect(response).to have_http_status(:forbidden)
-    end
-  end
-
   describe "GET /api/v1/company — module catalog" do
     it "lists every module with its enabled flag" do
       get "/api/v1/company", headers: auth_headers(owner)
@@ -90,6 +71,20 @@ RSpec.describe "Api::V1::Companies", type: :request do
       expect(mods.map { |m| m["key"] }).to match_array(ModuleRegistry::KEYS)
       expect(mods.find { |m| m["key"] == "core" }).to include("optional" => false, "enabled" => true)
       expect(mods.find { |m| m["key"] == "appointments" }).to include("optional" => true, "enabled" => false)
+    end
+
+    it "exposes each module's global price and the read-only monthly total" do
+      PlatformModulePrice.for("fitness").update!(price_cents: 6000)
+      company.company_modules.find_or_create_by!(key: "fitness") { |m| m.enabled = true }
+
+      get "/api/v1/company", headers: auth_headers(owner)
+      body = response.parsed_body["company"]
+      mods = body["modules"]
+      expect(mods.find { |m| m["key"] == "fitness" }).to include("price_cents" => 6000, "currency" => "TND")
+      expect(mods.find { |m| m["key"] == "core" }).to include("price_cents" => 0)
+      # read-only total = Σ enabled optional module prices
+      expect(body["monthly_total_cents"]).to eq(company.reload.monthly_total_cents)
+      expect(body["monthly_total_cents"]).to be >= 6000
     end
   end
 

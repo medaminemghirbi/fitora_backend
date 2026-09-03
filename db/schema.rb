@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_03_090200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -191,6 +191,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "birthdate"
     t.index ["company_id"], name: "index_coaches_on_company_id"
   end
 
@@ -216,6 +217,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
     t.integer "working_days", default: [1, 2, 3, 4, 5], null: false, array: true
     t.jsonb "nav_labels", default: {}, null: false
     t.string "industry"
+    t.string "locale", default: "fr", null: false
     t.index ["mobile_auth_key"], name: "index_companies_on_mobile_auth_key", unique: true
     t.index ["owner_id"], name: "index_companies_on_owner_id", unique: true
     t.index ["slug"], name: "index_companies_on_slug", unique: true
@@ -365,6 +367,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
     t.index ["company_id"], name: "index_locations_on_company_id"
   end
 
+  create_table "notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.uuid "recipient_id", null: false
+    t.string "kind", null: false
+    t.jsonb "data", default: {}, null: false
+    t.string "url", null: false
+    t.string "subject_type"
+    t.uuid "subject_id"
+    t.string "dedup_key", null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.index ["company_id", "dedup_key"], name: "index_notifications_on_company_id_and_dedup_key", unique: true
+    t.index ["company_id"], name: "index_notifications_on_company_id"
+    t.index ["recipient_id", "created_at"], name: "index_notifications_on_recipient_id_and_created_at"
+    t.index ["recipient_id", "read_at"], name: "index_notifications_on_recipient_id_and_read_at"
+    t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+    t.index ["subject_type", "subject_id"], name: "index_notifications_on_subject_type_and_subject_id"
+  end
+
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "client_id", null: false
     t.uuid "company_id", null: false
@@ -384,6 +405,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
     t.index ["company_id"], name: "index_payments_on_company_id"
     t.index ["contract_period_id"], name: "index_payments_on_contract_period_id"
     t.index ["created_by_id"], name: "index_payments_on_created_by_id"
+  end
+
+  create_table "platform_module_prices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key", null: false
+    t.integer "price_cents", default: 0, null: false
+    t.string "currency", default: "TND", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_platform_module_prices_on_key", unique: true
   end
 
   create_table "recurring_schedules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -458,6 +489,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "role_id"
+    t.date "birthdate"
     t.index ["coach_id"], name: "index_staff_members_on_coach_id"
     t.index ["company_id"], name: "index_staff_members_on_company_id"
     t.index ["role_id"], name: "index_staff_members_on_role_id"
@@ -578,6 +610,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_31_160000) do
   add_foreign_key "library_folders", "companies"
   add_foreign_key "library_folders", "users", column: "created_by_id"
   add_foreign_key "locations", "companies"
+  add_foreign_key "notifications", "companies"
+  add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "payments", "bookings"
   add_foreign_key "payments", "clients"
   add_foreign_key "payments", "companies"

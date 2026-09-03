@@ -11,13 +11,13 @@ RSpec.describe "db/seeds.rb" do
       silence_stream($stdout) { Rails.application.load_seed }
     }.not_to raise_error
 
-    expect(User.find_by(email: "owner@fitora.test")).to be_present
-    expect(User.find_by(email: "admin@fitora.test")&.role).to eq("admin")
+    expect(User.find_by(email: "owner@gerily.test")).to be_present
+    expect(User.find_by(email: "admin@gerily.test")&.role).to eq("admin")
     expect(Company.count).to eq(3)
-    expect(Company.find_by(name: "Fitora Fitness Sousse").subscription).to be_present
+    expect(Company.find_by(name: "Gerily Fitness Sousse").subscription).to be_present
     medical = Company.find_by(name: "Cabinet Médical Nour")
     expect(medical.industry).to eq("medical")
-    expect(medical.enabled_module_keys).to match_array(%w[core appointments])
+    expect(medical.enabled_module_keys).to match_array(%w[core appointments hr library])
     expect(medical.appointments.count).to be_positive
     expect(StaffMember.pluck(:role).uniq).to match_array(%w[manager receptionist coach])
     expect(Session.count).to be_positive

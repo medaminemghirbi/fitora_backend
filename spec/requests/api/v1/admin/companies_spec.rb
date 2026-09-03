@@ -47,6 +47,81 @@ RSpec.describe "Api::V1::Admin::Companies", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/admin/companies/:id/modules" do
+    it "toggles a company's optional modules and returns the new total" do
+      company = create(:company)
+
+      patch "/api/v1/admin/companies/#{company.id}/modules",
+            params: { modules: { fitness: false, core: false, teleport: true } },
+            headers: auth_headers(admin)
+
+      expect(response).to have_http_status(:ok)
+      expect(company.reload).not_to be_module_enabled("fitness")
+      expect(company).to be_module_enabled("core")
+      body = response.parsed_body["company"]
+      # hr(2500) + library(1500) still on, fitness(6000) off
+      expect(body["monthly_total_cents"]).to eq(4000)
+      expect(body["modules"].find { |m| m["key"] == "fitness" }["enabled"]).to be(false)
+    end
+
+    it "is admin-only" do
+      company = create(:company)
+      patch "/api/v1/admin/companies/#{company.id}/modules",
+            params: { modules: { fitness: false } }, headers: auth_headers(create(:user, :owner))
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "GET /api/v1/admin/companies/:id" do
+    it "returns the company with its currency/locale and the option lists" do
+      company = create(:company, currency: "TND", locale: "fr")
+
+      get "/api/v1/admin/companies/#{company.id}", headers: auth_headers(admin)
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body["company"]).to include("currency" => "TND", "currency_symbol" => "DT", "locale" => "fr")
+      expect(body["currency_options"].map { |c| c["code"] }).to include("TND", "EUR", "USD")
+      expect(body["currency_options"].find { |c| c["code"] == "EUR" }).to include("symbol" => "€")
+      expect(body["locale_options"]).to eq(%w[fr en ar])
+    end
+  end
+
+  describe "PATCH /api/v1/admin/companies/:id/settings" do
+    it "sets the tenant currency and language" do
+      company = create(:company, currency: "TND", locale: "fr")
+
+      patch "/api/v1/admin/companies/#{company.id}/settings",
+            params: { company: { currency: "EUR", locale: "en" } },
+            headers: auth_headers(admin)
+
+      expect(response).to have_http_status(:ok)
+      expect(company.reload).to have_attributes(currency: "EUR", locale: "en")
+      expect(response.parsed_body["company"]).to include("currency_symbol" => "€")
+    end
+
+    it "422s on a currency outside the catalogue" do
+      company = create(:company)
+      patch "/api/v1/admin/companies/#{company.id}/settings",
+            params: { company: { currency: "BTC" } }, headers: auth_headers(admin)
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "422s on an unsupported language" do
+      company = create(:company)
+      patch "/api/v1/admin/companies/#{company.id}/settings",
+            params: { company: { locale: "de" } }, headers: auth_headers(admin)
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "is admin-only" do
+      company = create(:company)
+      patch "/api/v1/admin/companies/#{company.id}/settings",
+            params: { company: { currency: "EUR" } }, headers: auth_headers(create(:user, :owner))
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
   describe "PATCH /api/v1/admin/companies/:id/subscription" do
     it "overrides a company's access status directly, with no payment involved" do
       company = create(:company)

@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Auth", type: :request do
   describe "POST /api/v1/auth/register" do
-    it "creates an owner account and returns a token — this is how a gym signs up for Fitora" do
+    it "creates an owner account and returns a token — this is how a gym signs up for Gerily" do
       post "/api/v1/auth/register", params: {
         first_name: "Jane", last_name: "Doe", email: "jane@example.com", password: "password123"
       }

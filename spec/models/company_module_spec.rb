@@ -9,14 +9,14 @@ RSpec.describe CompanyModule do
 
   describe "Company#module_enabled? / #enabled_module_keys" do
     it "always reports core, plus the enabled optional modules" do
-      expect(company.enabled_module_keys).to match_array(%w[core fitness])
+      expect(company.enabled_module_keys).to match_array(%w[core fitness hr library])
       expect(company).to be_module_enabled("core")
       expect(company).to be_module_enabled("fitness")
     end
 
     it "reflects a disabled module" do
       company.company_modules.find_by(key: "fitness").update!(enabled: false)
-      expect(company.reload.enabled_module_keys).to eq(%w[core])
+      expect(company.reload.enabled_module_keys).to match_array(%w[core hr library])
       expect(company).not_to be_module_enabled("fitness")
       expect(company).to be_module_enabled("core")
     end
