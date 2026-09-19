@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_18_153235) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_19_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -339,7 +339,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_18_153235) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "max_clients"
+    t.integer "max_staff"
     t.index ["code"], name: "index_subscription_plans_on_code", unique: true
+  end
+
+  create_table "subscription_upgrade_requests", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "subscription_plan_id", null: false
+    t.bigint "requested_by_id", null: false
+    t.integer "payment_method", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_subscription_upgrade_requests_on_organization_id"
+    t.index ["requested_by_id"], name: "index_subscription_upgrade_requests_on_requested_by_id"
+    t.index ["subscription_plan_id"], name: "index_subscription_upgrade_requests_on_subscription_plan_id"
   end
 
   create_table "subscriptions", force: :cascade do |t|
@@ -416,6 +431,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_18_153235) do
   add_foreign_key "staff_members", "coaches"
   add_foreign_key "staff_members", "organizations"
   add_foreign_key "staff_members", "users"
+  add_foreign_key "subscription_upgrade_requests", "organizations"
+  add_foreign_key "subscription_upgrade_requests", "subscription_plans"
+  add_foreign_key "subscription_upgrade_requests", "users", column: "requested_by_id"
   add_foreign_key "subscriptions", "organizations"
   add_foreign_key "subscriptions", "subscription_plans"
 end

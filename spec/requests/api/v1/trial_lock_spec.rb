@@ -39,6 +39,17 @@ RSpec.describe "Free trial lock", type: :request do
       expect(response.parsed_body["locked"]).to be true
     end
 
+    it "still lets the owner submit an upgrade request" do
+      plan = create(:subscription_plan)
+
+      post "/api/v1/subscription/upgrade-request",
+           params: { plan_id: plan.id, payment_method: "bank_transfer" },
+           headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:created)
+      expect(response.parsed_body["status"]).to eq("pending")
+    end
+
     it "still lets the owner see their organization profile" do
       get "/api/v1/organization", headers: auth_headers(owner)
 

@@ -14,6 +14,31 @@ RSpec.describe "Api::V1::Staff", type: :request do
       expect(response.parsed_body["staff_member"]["role"]).to eq("manager")
     end
 
+    it "blocks creation once the plan's staff seat limit is reached" do
+      plan = create(:subscription_plan, max_staff: 1)
+      create(:subscription, organization: organization, subscription_plan: plan)
+      create(:staff_member, organization: organization)
+
+      post "/api/v1/staff",
+           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@fitora.test", password: "password123", role: "manager" } },
+           headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body["error"]).to eq("plan_limit_reached")
+    end
+
+    it "is never blocked when the plan has no staff seat limit" do
+      plan = create(:subscription_plan, max_staff: nil)
+      create(:subscription, organization: organization, subscription_plan: plan)
+      create_list(:staff_member, 5, organization: organization)
+
+      post "/api/v1/staff",
+           params: { staff_member: { first_name: "Sara", last_name: "Manager", email: "sara@fitora.test", password: "password123", role: "manager" } },
+           headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:created)
+    end
+
     it "forbids a manager from creating staff — only the owner manages staff now" do
       manager = create(:staff_member, organization: organization, role: :manager)
 

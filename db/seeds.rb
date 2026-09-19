@@ -28,22 +28,28 @@ end
 basic = SubscriptionPlan.find_or_create_by!(code: "basic") do |p|
   p.name = "Basic"
   p.max_locations = 1
+  p.max_clients = 150
+  p.max_staff = 3
   p.price = 29
-  p.billing_period = :monthly
+  p.billing_period = :yearly
 end
 
 SubscriptionPlan.find_or_create_by!(code: "premium") do |p|
   p.name = "Premium"
   p.max_locations = 1
+  p.max_clients = nil
+  p.max_staff = 10
   p.price = 79
-  p.billing_period = :monthly
+  p.billing_period = :yearly
 end
 
 SubscriptionPlan.find_or_create_by!(code: "ultimate") do |p|
   p.name = "Ultimate"
   p.max_locations = 1
+  p.max_clients = nil
+  p.max_staff = nil
   p.price = 199
-  p.billing_period = :monthly
+  p.billing_period = :yearly
 end
 
 premium = SubscriptionPlan.find_by!(code: "premium")

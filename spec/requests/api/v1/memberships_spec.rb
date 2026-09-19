@@ -71,4 +71,59 @@ RSpec.describe "Api::V1::Memberships", type: :request do
       expect(original.reload.status).to eq("active") # history untouched
     end
   end
+
+  describe "GET /api/v1/memberships/:id/receipt" do
+    let(:plan) { create(:membership_plan, organization: organization, price: 89) }
+    let(:client) { create(:client, organization: organization) }
+    let(:membership) { create(:membership, client: client, membership_plan: plan, organization: organization) }
+
+    context "on a plan with advanced reports (Premium)" do
+      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "premium")) }
+
+      it "returns a PDF" do
+        create(:payment, organization: organization, client: client, membership: membership, amount: 89, status: :paid)
+
+        get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.content_type).to eq("application/pdf")
+        expect(response.headers["Content-Disposition"]).to include("recu-")
+        expect(response.body.byteslice(0, 4)).to eq("%PDF")
+      end
+
+      it "still returns a PDF when nothing has been paid yet" do
+        get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body.byteslice(0, 4)).to eq("%PDF")
+      end
+
+      it "is available to staff who can see memberships, not just the owner" do
+        receptionist = create(:staff_member, organization: organization, role: :receptionist)
+
+        get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(receptionist.user)
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "forbids a coach, who has no memberships capability" do
+        coach = create(:staff_member, organization: organization, role: :coach)
+
+        get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(coach.user)
+
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context "on Basic, which doesn't include advanced reports" do
+      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "basic")) }
+
+      it "is forbidden with a distinguishable error code" do
+        get "/api/v1/memberships/#{membership.id}/receipt", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:forbidden)
+        expect(response.parsed_body["error"]).to eq("plan_feature_locked")
+      end
+    end
+  end
 end

@@ -4,6 +4,7 @@ module Api
       before_action :require_organization!
       before_action :require_staff_manager!
       before_action :set_staff_member, only: [ :update ]
+      before_action :enforce_staff_limit!, only: [ :create ]
 
       # GET /api/v1/staff
       def index
@@ -60,6 +61,16 @@ module Api
       # access anymore, so there's no "staff-admin" exception to make here.
       def require_staff_manager!
         render_forbidden unless current_user.owner?
+      end
+
+      def enforce_staff_limit!
+        plan = current_organization.current_plan
+        return if plan.nil? || !plan.staff_limit_reached?(current_organization.staff_members.count)
+
+        render json: {
+          error: "plan_limit_reached", limit_type: "staff", limit: plan.max_staff,
+          message: "Your plan allows up to #{plan.max_staff} team members. Upgrade to add more."
+        }, status: :unprocessable_entity
       end
 
       def set_staff_member

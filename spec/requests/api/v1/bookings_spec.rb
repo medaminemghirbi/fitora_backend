@@ -90,4 +90,50 @@ RSpec.describe "Api::V1::Bookings", type: :request do
       expect(response.parsed_body["bookings"].size).to eq(1)
     end
   end
+
+  describe "POST /api/v1/bookings/:id/remind" do
+    let(:booking) { create(:booking, client: client, session: session) }
+
+    context "on a plan with the Premium+ SMS reminder perk" do
+      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "premium")) }
+
+      it "sends the reminder and returns sent" do
+        allow(Bookings::SendReminder).to receive(:call).and_return(Bookings::SendReminder::Result.new(success?: true, error: nil))
+
+        post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body["status"]).to eq("sent")
+        expect(Bookings::SendReminder).to have_received(:call).with(booking: booking)
+      end
+
+      it "surfaces a gateway/config failure as a 422" do
+        allow(Bookings::SendReminder).to receive(:call).and_return(Bookings::SendReminder::Result.new(success?: false, error: "TUNISIESMS_API_KEY is not set"))
+
+        post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body["error"]).to eq("TUNISIESMS_API_KEY is not set")
+      end
+
+      it "forbids a coach — coaches only have the checkin capability, never bookings" do
+        coach_staff = create(:staff_member, organization: organization, role: :coach, coach: create(:coach, organization: organization))
+
+        post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(coach_staff.user)
+
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context "on Basic, which doesn't include Premium+ perks" do
+      before { create(:subscription, organization: organization, subscription_plan: create(:subscription_plan, code: "basic")) }
+
+      it "is forbidden with a distinguishable error code" do
+        post "/api/v1/bookings/#{booking.id}/remind", headers: auth_headers(owner)
+
+        expect(response).to have_http_status(:forbidden)
+        expect(response.parsed_body["error"]).to eq("plan_feature_locked")
+      end
+    end
+  end
 end

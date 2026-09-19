@@ -12,7 +12,7 @@ module Api
       # the free trial (or a fixed-term paid period) expires, only the owner
       # has any access, and only to this much.
       OWNER_ALLOWED_WHEN_LOCKED = {
-        "Api::V1::SubscriptionController" => %w[show plans],
+        "Api::V1::SubscriptionController" => %w[show plans request_upgrade],
         "Api::V1::OrganizationsController" => %w[show]
       }.freeze
       private_constant :OWNER_ALLOWED_WHEN_LOCKED

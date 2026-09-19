@@ -4,6 +4,7 @@ module Api
       before_action :require_organization!
       before_action -> { require_capability!(:clients) }
       before_action :set_client, only: [ :show, :update ]
+      before_action :enforce_client_limit!, only: [ :create ]
 
       # GET /api/v1/clients?search=&status=&page=
       # status: active | inactive | membership_active | membership_expired | no_membership
@@ -52,6 +53,16 @@ module Api
       end
 
       private
+
+      def enforce_client_limit!
+        plan = current_organization.current_plan
+        return if plan.nil? || !plan.client_limit_reached?(current_organization.clients.count)
+
+        render json: {
+          error: "plan_limit_reached", limit_type: "clients", limit: plan.max_clients,
+          message: "Your plan allows up to #{plan.max_clients} clients. Upgrade to add more."
+        }, status: :unprocessable_entity
+      end
 
       def set_client
         @client = current_organization.clients.find(params[:id])

@@ -17,6 +17,37 @@ RSpec.describe "Api::V1::Clients", type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    it "blocks creation once the plan's client limit is reached" do
+      plan = create(:subscription_plan, max_clients: 1)
+      create(:subscription, organization: organization, subscription_plan: plan)
+      create(:client, organization: organization)
+
+      post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body["error"]).to eq("plan_limit_reached")
+    end
+
+    it "allows creation while under the plan's client limit" do
+      plan = create(:subscription_plan, max_clients: 2)
+      create(:subscription, organization: organization, subscription_plan: plan)
+      create(:client, organization: organization)
+
+      post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:created)
+    end
+
+    it "is never blocked when the plan has no client limit" do
+      plan = create(:subscription_plan, max_clients: nil)
+      create(:subscription, organization: organization, subscription_plan: plan)
+      create_list(:client, 5, organization: organization)
+
+      post "/api/v1/clients", params: { client: { first_name: "Ahmed", last_name: "Ben Ali", phone: "20000000" } }, headers: auth_headers(owner)
+
+      expect(response).to have_http_status(:created)
+    end
   end
 
   describe "GET /api/v1/clients" do

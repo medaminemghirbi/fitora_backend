@@ -21,17 +21,20 @@ Rails.application.routes.draw do
       resources :bookings, only: [ :index, :show, :create ] do
         member do
           post :cancel
+          post :remind
         end
       end
       resources :clients, only: [ :index, :show, :create, :update ]
 
       get "subscription", to: "subscription#show"
       get "subscription/plans", to: "subscription#plans"
+      post "subscription/upgrade-request", to: "subscription#request_upgrade"
 
       resources :membership_plans, only: [ :index, :show, :create, :update ]
       resources :memberships, only: [ :index, :show, :create ] do
         member do
           post :renew
+          get :receipt
         end
       end
       resources :packages, only: [ :index, :show, :create, :update ] do
@@ -53,6 +56,7 @@ Rails.application.routes.draw do
       namespace :owner do
         get "dashboard", to: "dashboard#show"
         get "revenue", to: "revenue#show"
+        get "reports/export", to: "reports#export"
       end
 
       namespace :admin do

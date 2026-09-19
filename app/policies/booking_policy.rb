@@ -15,6 +15,10 @@ class BookingPolicy < ApplicationPolicy
     staff_access?
   end
 
+  def remind?
+    staff_access?
+  end
+
   private
 
   # Owner always; staff need the `bookings` capability (manager, receptionist,

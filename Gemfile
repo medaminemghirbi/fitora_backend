@@ -21,6 +21,15 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# Styled .xlsx generation (colored cells) for the owner's Premium report export
+gem "caxlsx"
+
+# PDF invoice/receipt generation for the Premium membership receipt download
+gem "prawn"
+gem "prawn-table"
+# Prawn uses Matrix internally — no longer a Ruby default gem, must be explicit
+gem "matrix"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
